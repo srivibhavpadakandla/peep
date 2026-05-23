@@ -78,6 +78,8 @@ export default function SecurityAlertsPanel({ config, onChange, animalConfig, on
     try {
       await fetch("/api/security/alert", { method: "DELETE" });
       setAlerts([]);
+    } catch (err) {
+      console.warn("clearAlerts failed:", err);
     } finally {
       setBusy(false);
     }

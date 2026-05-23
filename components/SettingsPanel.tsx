@@ -59,7 +59,12 @@ export default function SettingsPanel() {
     setLoading(true);
     try {
       const res = await fetch("/api/inbox-status");
+      if (!res.ok) throw new Error(`inbox-status ${res.status}`);
       setInbox(await res.json());
+    } catch (err) {
+      // Server may be hot-reloading or offline. Don't crash the React tree;
+      // surface as a no-op refresh — the panel renders a graceful empty state.
+      console.warn("inbox-status fetch failed:", err);
     } finally {
       setLoading(false);
     }

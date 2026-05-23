@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// Tab shell. Four tabs — Live, Activity, Inbox, Settings. The tab bar uses
-/// a translucent material against the cream background; active state is the
-/// sage accent + bolder glyph.
+/// Tab shell. Five tabs — Live, Activity, Community, Inbox, Settings. The
+/// tab bar uses a translucent material against the cream background; active
+/// state is the sage accent + bolder glyph.
 struct RootView: View {
     init() {
         // Tab bar — translucent cream backdrop
@@ -28,6 +28,8 @@ struct RootView: View {
                 .tabItem { Label("Live", systemImage: "house") }
             ActivityView()
                 .tabItem { Label("Activity", systemImage: "bell") }
+            CommunityView()
+                .tabItem { Label("Community", systemImage: "person.3") }
             InboxView()
                 .tabItem { Label("Inbox", systemImage: "tray") }
             SettingsView()

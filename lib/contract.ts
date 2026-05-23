@@ -11,7 +11,8 @@ export type EventType =
   | "person_loitering"
   | "multiple_loitering"
   | "weapon_detected"
-  | "after_hours_activity";
+  | "after_hours_activity"
+  | "animal_detected";
 
 export interface CameraEvent {
   event_type: EventType;

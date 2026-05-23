@@ -9,6 +9,11 @@ import {
   DEFAULT_OPTIONS as CRIME_DEFAULTS,
   type CrimeMonitorOptions,
 } from "@/lib/vision/crime-monitor";
+import {
+  AnimalMonitor,
+  DEFAULT_OPTIONS as ANIMAL_DEFAULTS,
+  type AnimalMonitorOptions,
+} from "@/lib/vision/animal-monitor";
 import { ClipRecorder } from "@/lib/vision/clip-recorder";
 import type { Detector, Detection } from "@/lib/vision/detector";
 import { notifyEvent, requestNotificationPermission } from "@/lib/notify";
@@ -20,12 +25,20 @@ interface Props {
   detectorFactory?: () => Detector;
   /** Crime-monitor overrides (e.g. quiet-hours window). */
   crimeOptions?: Partial<CrimeMonitorOptions>;
+  /** Animal-monitor overrides. */
+  animalOptions?: Partial<AnimalMonitorOptions>;
 }
 
-export default function VisionAgent({ targetLabel = "backpack", detectorFactory, crimeOptions }: Props) {
+export default function VisionAgent({
+  targetLabel = "backpack",
+  detectorFactory,
+  crimeOptions,
+  animalOptions,
+}: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const crimeMonitorRef = useRef<CrimeMonitor | null>(null);
+  const animalMonitorRef = useRef<AnimalMonitor | null>(null);
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [phase, setPhase] = useState<string>("idle");
@@ -45,6 +58,8 @@ export default function VisionAgent({ targetLabel = "backpack", detectorFactory,
     let eventDetector = new EventDetector({ ...DEFAULT_OPTIONS, targetLabel });
     let crimeMonitor = new CrimeMonitor({ ...CRIME_DEFAULTS, ...crimeOptions });
     crimeMonitorRef.current = crimeMonitor;
+    let animalMonitor = new AnimalMonitor({ ...ANIMAL_DEFAULTS, ...animalOptions });
+    animalMonitorRef.current = animalMonitor;
     let rafId = 0;
 
     async function init() {
@@ -93,6 +108,17 @@ export default function VisionAgent({ targetLabel = "backpack", detectorFactory,
             notifyEvent(event);
             publishEvent(event);
           }
+
+          const animalDecision = animalMonitor.ingest(detections, now);
+          if (animalDecision && recorder) {
+            const clip = recorder.finalize();
+            const event = buildEvent(animalDecision, clip, now);
+            // Stuff the animal label onto the event so orchestration can read it.
+            (event as unknown as { animal?: string; severity?: string }).animal = animalDecision.meta.animal;
+            (event as unknown as { animal?: string; severity?: string }).severity = animalDecision.meta.severity;
+            notifyEvent(event);
+            publishEvent(event);
+          }
           rafId = requestAnimationFrame(loop);
         };
         rafId = requestAnimationFrame(loop);
@@ -111,6 +137,7 @@ export default function VisionAgent({ targetLabel = "backpack", detectorFactory,
       detector?.dispose?.();
       stream?.getTracks().forEach((t) => t.stop());
       crimeMonitorRef.current = null;
+      animalMonitorRef.current = null;
     };
     // crimeOptions is applied via a separate effect so quiet-hours can change
     // without resetting the camera / detector / state machines.
@@ -122,6 +149,12 @@ export default function VisionAgent({ targetLabel = "backpack", detectorFactory,
       crimeMonitorRef.current.setOptions(crimeOptions);
     }
   }, [crimeOptions]);
+
+  useEffect(() => {
+    if (animalMonitorRef.current && animalOptions) {
+      animalMonitorRef.current.setOptions(animalOptions);
+    }
+  }, [animalOptions]);
 
   return (
     <div className="relative w-full max-w-[640px] rounded-lg overflow-hidden border border-neutral-800 bg-neutral-950">
@@ -183,10 +216,23 @@ function drawOverlay(
     const [x, y, bw, bh] = d.bbox;
     const isTarget = d.label === targetLabel;
     const isPerson = d.label === "person";
-    ctx.lineWidth = isTarget || isPerson ? 2 : 1;
-    ctx.strokeStyle = isTarget ? "#10b981" : isPerson ? "#38bdf8" : "#525252";
+    const isAnimal = ["dog", "bear", "cat", "bird"].includes(d.label);
+    const isWeapon = ["knife", "scissors", "baseball bat"].includes(d.label);
+    const color = isWeapon
+      ? "#ef4444"
+      : isAnimal
+      ? d.label === "bear"
+        ? "#f97316"
+        : "#a855f7"
+      : isTarget
+      ? "#10b981"
+      : isPerson
+      ? "#38bdf8"
+      : "#525252";
+    ctx.lineWidth = isTarget || isPerson || isAnimal || isWeapon ? 2 : 1;
+    ctx.strokeStyle = color;
     ctx.strokeRect(x, y, bw, bh);
-    ctx.fillStyle = isTarget ? "#10b981" : isPerson ? "#38bdf8" : "#737373";
+    ctx.fillStyle = color;
     ctx.font = "14px ui-monospace, monospace";
     ctx.fillText(`${d.label} ${d.score.toFixed(2)}`, x + 4, y + 16);
   }

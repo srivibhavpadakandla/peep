@@ -83,6 +83,18 @@ export class MockRouter implements OrchestrationRouter {
           confidence: event.confidence,
         },
       },
+      animal_detected: {
+        workflow: "security_alert",
+        reason: `Animal detected on camera (${
+          (event as unknown as { animal?: string }).animal ?? "unknown"
+        }).`,
+        params: {
+          event_type: "animal_detected",
+          severity: (event as unknown as { severity?: string }).severity ?? "info",
+          animal: (event as unknown as { animal?: string }).animal ?? "unknown",
+          confidence: event.confidence,
+        },
+      },
     };
     return map[event.event_type];
   }

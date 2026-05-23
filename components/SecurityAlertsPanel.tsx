@@ -18,9 +18,20 @@ export interface CrimeConfig {
   movementThresholdPx: number;
 }
 
+export interface AnimalConfig {
+  enabled: boolean;
+  animalLabels: string[];
+  cooldownMs: number;
+  oncePerSession: boolean;
+}
+
+export const ANIMAL_OPTIONS = ["dog", "bear", "cat", "bird"] as const;
+
 interface Props {
   config: CrimeConfig;
   onChange: (next: CrimeConfig) => void;
+  animalConfig: AnimalConfig;
+  onAnimalChange: (next: AnimalConfig) => void;
 }
 
 const EVENT_STYLES: Record<string, { label: string; cls: string }> = {
@@ -28,9 +39,18 @@ const EVENT_STYLES: Record<string, { label: string; cls: string }> = {
   multiple_loitering: { label: "Multiple loitering", cls: "border-orange-700 bg-orange-950/40 text-orange-300" },
   after_hours_activity: { label: "After hours", cls: "border-sky-700 bg-sky-950/40 text-sky-300" },
   weapon_detected: { label: "Weapon", cls: "border-red-700 bg-red-950/40 text-red-300" },
+  animal_detected: { label: "Animal", cls: "border-purple-700 bg-purple-950/40 text-purple-300" },
 };
 
-export default function SecurityAlertsPanel({ config, onChange }: Props) {
+export default function SecurityAlertsPanel({ config, onChange, animalConfig, onAnimalChange }: Props) {
+  const toggleAnimal = (label: string) => {
+    const has = animalConfig.animalLabels.includes(label);
+    const next = has
+      ? animalConfig.animalLabels.filter((l) => l !== label)
+      : [...animalConfig.animalLabels, label];
+    onAnimalChange({ ...animalConfig, animalLabels: next });
+  };
+
   const [alerts, setAlerts] = useState<SecurityAlert[]>([]);
   const [busy, setBusy] = useState(false);
 
@@ -182,6 +202,59 @@ export default function SecurityAlertsPanel({ config, onChange }: Props) {
           <div className="text-[10px] text-neutral-500">
             {currentlyQuiet(config) ? "Currently in quiet hours." : "Not currently quiet hours."}
           </div>
+        </fieldset>
+
+        <fieldset className="col-span-2 border border-neutral-800 rounded p-2 space-y-1.5">
+          <legend className="px-1 text-[10px] uppercase tracking-wide text-neutral-500">Animals</legend>
+          <label className="flex items-center gap-1.5">
+            <input
+              type="checkbox"
+              checked={animalConfig.enabled}
+              onChange={(e) => onAnimalChange({ ...animalConfig, enabled: e.target.checked })}
+              className="accent-emerald-500"
+            />
+            <span>Animal monitor enabled</span>
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {ANIMAL_OPTIONS.map((label) => {
+              const on = animalConfig.animalLabels.includes(label);
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => toggleAnimal(label)}
+                  disabled={!animalConfig.enabled}
+                  className={`px-2 py-1 rounded border text-[11px] ${
+                    on
+                      ? "border-purple-500 text-purple-300 bg-purple-950/40"
+                      : "border-neutral-700 text-neutral-400"
+                  } disabled:opacity-50`}
+                >
+                  {label === "bear" ? "🐻 " : label === "dog" ? "🐕 " : label === "cat" ? "🐈 " : "🐦 "}
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          <label className="flex items-center gap-1.5 mt-1">
+            <input
+              type="checkbox"
+              checked={animalConfig.oncePerSession}
+              onChange={(e) => onAnimalChange({ ...animalConfig, oncePerSession: e.target.checked })}
+              disabled={!animalConfig.enabled}
+              className="accent-emerald-500"
+            />
+            <span>Fire once per session per animal</span>
+          </label>
+          <label className="flex flex-col gap-0.5">
+            <span className="text-neutral-400">Animal cooldown: {(animalConfig.cooldownMs / 1000).toFixed(0)}s</span>
+            <input
+              type="range" min={10000} max={300000} step={10000}
+              value={animalConfig.cooldownMs}
+              onChange={(e) => onAnimalChange({ ...animalConfig, cooldownMs: Number(e.target.value) })}
+              disabled={!animalConfig.enabled || animalConfig.oncePerSession}
+            />
+          </label>
         </fieldset>
       </div>
 

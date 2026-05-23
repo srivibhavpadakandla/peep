@@ -25,11 +25,14 @@ Workflow guide:
     reason ("package_stolen" for theft, "never_arrived" for missing)
     item_description (string)
   Only fire when confidence >= 0.5.
-- "security_alert": for any crime signal — "person_loitering", "multiple_loitering",
-  "weapon_detected", "after_hours_activity". Params:
+- "security_alert": for any crime / wildlife signal — "person_loitering",
+  "multiple_loitering", "weapon_detected", "after_hours_activity", "animal_detected".
+  Params:
     event_type (string — pass through the input event_type)
-    severity ("warning" | "high" | "critical" — weapons → critical, multi-loitering → high, others → warning)
+    severity ("info" | "warning" | "high" | "critical")
+      - weapons → critical, multi-loitering → high, bear → high, dog/cat/bird → info, others → warning
     confidence (number)
+    animal (string, only for animal_detected — e.g. "dog", "bear")
 - "log_incident": for "package_arrived" (delivery confirmed) — log only.
   params: { kind: "arrival" }.
 - "no_action": clearly benign events. params: {}.

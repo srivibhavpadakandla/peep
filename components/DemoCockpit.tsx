@@ -5,7 +5,7 @@ import { useAgentStore } from "@/lib/store";
 import type { CameraEvent } from "@/lib/contract";
 import VisionAgent from "./VisionAgent";
 import InboxPanel from "./InboxPanel";
-import SecurityAlertsPanel, { type CrimeConfig } from "./SecurityAlertsPanel";
+import SecurityAlertsPanel, { type CrimeConfig, type AnimalConfig } from "./SecurityAlertsPanel";
 
 export default function DemoCockpit() {
   const lastEvent = useAgentStore((s) => s.lastEvent);
@@ -32,6 +32,12 @@ export default function DemoCockpit() {
     sessionClearMs: 10_000,
     requireMovement: false,
     movementThresholdPx: 60,
+  });
+  const [animalConfig, setAnimalConfig] = useState<AnimalConfig>({
+    enabled: true,
+    animalLabels: ["dog", "bear"],
+    cooldownMs: 60_000,
+    oncePerSession: true,
   });
 
   useEffect(() => {
@@ -90,9 +96,24 @@ export default function DemoCockpit() {
             reset
           </button>
         </div>
-        <VisionAgent key={target} targetLabel={target} crimeOptions={crimeConfig} />
+        <VisionAgent
+          key={target}
+          targetLabel={target}
+          crimeOptions={crimeConfig}
+          animalOptions={{
+            enabled: animalConfig.enabled,
+            animalLabels: animalConfig.animalLabels,
+            cooldownMs: animalConfig.cooldownMs,
+            oncePerSession: animalConfig.oncePerSession,
+          }}
+        />
         <InboxPanel />
-        <SecurityAlertsPanel config={crimeConfig} onChange={setCrimeConfig} />
+        <SecurityAlertsPanel
+          config={crimeConfig}
+          onChange={setCrimeConfig}
+          animalConfig={animalConfig}
+          onAnimalChange={setAnimalConfig}
+        />
       </div>
 
       <div className="space-y-4">

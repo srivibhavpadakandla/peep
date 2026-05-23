@@ -1,0 +1,29 @@
+# macOS
+.DS_Store
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+
+# Playwright
+test-results/
+playwright-report/
+
+# Xcode
+ios/build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# Local config / secrets
+.env
+.env.local
+*.key
+
+# Editor
+.vscode/
+.idea/

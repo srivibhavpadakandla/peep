@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Action Layer · Amazon refund demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0e12;
+    --ink-4: #a8a89e;
+    --accent: #6a9971;
+    /* Amazon palette */
+    --amz-nav-top: #131A22;
+    --amz-nav-sub: #232F3E;
+    --amz-orange: #FF9900;
+    --amz-link: #007185;
+    --amz-link-hover: #C7511F;
+    --amz-green: #067D62;
+    --amz-page-bg: #EAEDED;
+    --amz-card: #FFFFFF;
+    --amz-border: #D5D9D9;
+    --amz-text: #0F1111;
+    --amz-text-sub: #565959;
+    --amz-btn-yellow: linear-gradient(to bottom, #F7DFA5, #F0C14B);
+    --amz-btn-yellow-hover: linear-gradient(to bottom, #F5D78E, #EEB933);
+    --amz-btn-yellow-border: #A88734;
+    --amz-btn-gold: linear-gradient(to bottom, #FFD814, #F7CA00);
+    --amz-btn-gold-border: #FCD200;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background:
+      radial-gradient(1200px 600px at 20% 0%, rgba(106,153,113,0.10), transparent 60%),
+      radial-gradient(1000px 700px at 80% 100%, rgba(112,107,142,0.10), transparent 60%),
+      var(--bg);
+    color: #fff;
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: auto;
+  }
+  #root {
+    width: 100%; min-height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px 0;
+  }
+
+  /* Amazon-ish Ember substitute */
+  .amz, .amz * {
+    font-family: 'Amazon Ember', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+  .amz a { color: var(--amz-link); text-decoration: none; }
+  .amz a:hover { color: var(--amz-link-hover); text-decoration: underline; }
+
+  /* Amazon smile arrow under wordmark */
+  .amz-logo {
+    color: #fff; font-size: 28px; font-weight: 700;
+    line-height: 1; letter-spacing: -0.4px;
+    display: inline-flex; flex-direction: column; align-items: flex-start;
+    padding-top: 8px;
+  }
+  .amz-logo .word { display: inline-flex; align-items: baseline; gap: 2px; }
+  .amz-logo .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--amz-orange); margin-bottom: 2px; }
+  .amz-logo .smile {
+    width: 78px; height: 16px; margin-top: -7px; margin-left: 2px; position: relative;
+  }
+  .amz-logo .smile svg { width: 100%; height: 100%; display: block; }
+
+  /* generic Amazon nav item — translucent hover border */
+  .navitem {
+    display: inline-flex; flex-direction: column; justify-content: center;
+    padding: 6px 9px; border: 1px solid transparent; border-radius: 2px;
+    cursor: default; color: #fff; line-height: 1.15;
+  }
+  .navitem:hover { border-color: #fff; }
+  .navitem .line1 { font-size: 12px; color: #ccc; }
+  .navitem .line2 { font-size: 14px; font-weight: 700; }
+
+  .amz-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 6px 14px; border-radius: 8px; cursor: default;
+    border: 1px solid var(--amz-btn-yellow-border);
+    background: var(--amz-btn-yellow);
+    color: var(--amz-text); font-size: 13px;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.4) inset;
+  }
+  .amz-btn.gold {
+    background: var(--amz-btn-gold);
+    border-color: var(--amz-btn-gold-border);
+    font-weight: 500;
+  }
+  .amz-btn.active { background: var(--amz-btn-yellow-hover); box-shadow: 0 0 0 3px rgba(247,202,0,0.45); }
+  .amz-btn.gold.active { box-shadow: 0 0 0 3px rgba(255,216,20,0.55); }
+
+  /* Amazon "tab" links */
+  .amz-tab { font-size: 14px; color: var(--amz-text-sub); padding: 4px 0; cursor: default; }
+  .amz-tab.active { color: var(--amz-text); border-bottom: 3px solid var(--amz-orange); font-weight: 700; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+  @keyframes fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes caret { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+  @keyframes radioPop { 0% { transform: scale(0.6); } 60% { transform: scale(1.15); } 100% { transform: scale(1); } }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+
+const PHASES = [
+  { ms: 1100, status: 'Connecting to amazon.com/your-orders…' },
+  { ms: 1600, status: 'Found order · Anker PowerCore 20K' },
+  { ms: 1400, status: 'Opening "Get product support"' },
+  { ms: 1700, status: 'Selecting issue · "Package didn\'t arrive"' },
+  { ms: 3400, status: 'Attaching Peep clip + filing claim' },
+  { ms: 1800, status: 'Submitting refund request…' },
+  { ms: 1200, status: '✓ Refund issued · $42.99 to Visa •••• 4242' },
+];
+
+const CURSOR_POS = [
+  { x: 18, y: 26 },   // 0 navigating
+  { x: 79, y: 56 },   // 1 hover the order's "Get product support"
+  { x: 88, y: 58 },   // 2 click it
+  { x: 12, y: 50 },   // 3 click "Package didn't arrive" radio
+  { x: 28, y: 76 },   // 4 typing in textarea
+  { x: 75, y: 92 },   // 5 hit Submit
+  { x: 50, y: 50 },   // 6 done
+];
+
+const REASON = "Doorbell camera confirms theft at 2:32 PM. Clip attached: peep://clips/evt_a5.mp4";
+const RECEIPT = "RFND-XQ7K9-PJZ4";
+
+function SmileArrow({ color = 'var(--amz-orange)' }) {
+  return (
+    <svg viewBox="0 0 78 16" preserveAspectRatio="none">
+      <path d="M 2 4 Q 39 22 76 4"
+        fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M 70 1 L 76 4 L 71 9"
+        fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function AmazonHeader() {
+  return (
+    <div className="amz">
+      {/* main top nav */}
+      <div style={{
+        background: 'var(--amz-nav-top)', color: '#fff',
+        padding: '4px 16px', display: 'flex', alignItems: 'stretch', gap: 6, height: 60,
+      }}>
+        <div className="navitem" style={{ paddingTop: 4 }}>
+          <div className="amz-logo" style={{ paddingTop: 0 }}>
+            <span className="word"><span>amazon</span><span className="dot" /></span>
+            <span className="smile"><SmileArrow /></span>
+          </div>
+        </div>
+
+        <div className="navitem">
+          <span className="line1" style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+            <svg width="11" height="13" viewBox="0 0 11 13" fill="#fff" style={{ marginTop: -2 }}>
+              <path d="M5.5 0C2.46 0 0 2.46 0 5.5C0 9.625 5.5 13 5.5 13S11 9.625 11 5.5C11 2.46 8.54 0 5.5 0ZM5.5 7.5C4.4 7.5 3.5 6.6 3.5 5.5S4.4 3.5 5.5 3.5 7.5 4.4 7.5 5.5 6.6 7.5 5.5 7.5Z" />
+            </svg>
+            Deliver to Jamie
+          </span>
+          <span className="line2">Brooklyn 11215 ▾</span>
+        </div>
+
+        {/* search bar */}
+        <div style={{
+          flex: 1, display: 'flex', alignItems: 'center', alignSelf: 'center',
+          background: '#fff', borderRadius: 4, height: 40, overflow: 'hidden',
+          border: '1px solid transparent',
+        }}>
+          <div style={{
+            background: '#F3F3F3', height: '100%', padding: '0 10px',
+            display: 'flex', alignItems: 'center', color: 'var(--amz-text)',
+            fontSize: 12, borderRight: '1px solid #cdcdcd',
+          }}>All ▾</div>
+          <input readOnly value="" placeholder="Search Amazon"
+            style={{
+              flex: 1, border: 'none', outline: 'none', padding: '0 12px',
+              fontSize: 14, color: 'var(--amz-text)', background: 'transparent',
+            }} />
+          <div style={{
+            background: 'var(--amz-orange)', height: '100%', width: 46,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.4" strokeLinecap="round">
+              <circle cx="10.5" cy="10.5" r="6.5" />
+              <path d="M20 20 L15.5 15.5" />
+            </svg>
+          </div>
+        </div>
+
+        <div className="navitem" style={{ fontSize: 13 }}>
+          <span style={{ fontSize: 12 }}>EN ▾</span>
+        </div>
+
+        <div className="navitem">
+          <span className="line1">Hello, Jamie</span>
+          <span className="line2">Account & Lists ▾</span>
+        </div>
+
+        <div className="navitem">
+          <span className="line1">Returns</span>
+          <span className="line2">& Orders</span>
+        </div>
+
+        <div className="navitem" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <div style={{ position: 'relative' }}>
+            <svg width="34" height="28" viewBox="0 0 34 28" fill="#fff">
+              <path d="M0 4 L7 4 L9 16 L29 16 L31 7 L11 7" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="13" cy="23" r="2.5" fill="#fff" />
+              <circle cx="26" cy="23" r="2.5" fill="#fff" />
+            </svg>
+            <span style={{
+              position: 'absolute', top: -2, left: 18,
+              color: 'var(--amz-orange)', fontSize: 14, fontWeight: 700,
+            }}>2</span>
+          </div>
+          <span style={{ fontSize: 13, fontWeight: 700 }}>Cart</span>
+        </div>
+      </div>
+
+      {/* secondary nav */}
+      <div style={{
+        background: 'var(--amz-nav-sub)', color: '#fff',
+        padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 16,
+        fontSize: 13, height: 36,
+      }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontWeight: 700 }}>
+          <span style={{ fontSize: 16 }}>≡</span> All
+        </span>
+        {['Today\'s Deals', 'Customer Service', 'Registry', 'Gift Cards', 'Sell'].map(s => (
+          <span key={s} style={{ cursor: 'default' }}>{s}</span>
+        ))}
+        <span style={{ flex: 1 }} />
+        <span style={{ color: '#fff' }}>Prime Day · July 16–17</span>
+      </div>
+    </div>
+  );
+}
+
+function OrderCard({ highlight, supportActive }) {
+  return (
+    <div className="amz" style={{
+      background: 'var(--amz-card)',
+      border: highlight ? `2px solid var(--amz-orange)` : `1px solid var(--amz-border)`,
+      borderRadius: 8, overflow: 'hidden',
+      boxShadow: highlight ? `0 0 0 4px rgba(255,153,0,0.18)` : '0 0 0 0 transparent',
+      transition: 'border-color .25s, box-shadow .25s',
+      animation: 'fadein .35s ease both',
+    }}>
+      {/* order strip */}
+      <div style={{
+        background: '#F0F2F2', padding: '10px 18px',
+        display: 'grid', gridTemplateColumns: '1fr 1fr 1.4fr 1.8fr', gap: 16,
+        borderBottom: `1px solid var(--amz-border)`,
+        fontSize: 12,
+      }}>
+        <div>
+          <div style={{ color: 'var(--amz-text-sub)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.3 }}>Order placed</div>
+          <div style={{ color: 'var(--amz-text)', marginTop: 3, fontSize: 13 }}>March 21, 2026</div>
+        </div>
+        <div>
+          <div style={{ color: 'var(--amz-text-sub)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.3 }}>Total</div>
+          <div style={{ color: 'var(--amz-text)', marginTop: 3, fontSize: 13 }}>$42.99</div>
+        </div>
+        <div>
+          <div style={{ color: 'var(--amz-text-sub)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.3 }}>Ship to</div>
+          <a style={{ display: 'inline-block', marginTop: 3, fontSize: 13 }}>Jamie Mendoza ▾</a>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ color: 'var(--amz-text-sub)', fontSize: 12 }}>
+            Order # <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>114-8829112-0034221</span>
+          </div>
+          <div style={{ marginTop: 3, fontSize: 13 }}>
+            <a>View order details</a>
+            <span style={{ color: 'var(--amz-border)', margin: '0 6px' }}>|</span>
+            <a>Invoice ▾</a>
+          </div>
+        </div>
+      </div>
+
+      {/* product row */}
+      <div style={{
+        padding: 18, display: 'grid', gridTemplateColumns: '120px 1fr 240px', gap: 18,
+      }}>
+        {/* product image */}
+        <div style={{
+          width: 120, height: 120, background: '#F7F8F8',
+          border: '1px solid #EAEDED', borderRadius: 4,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          position: 'relative', overflow: 'hidden',
+        }}>
+          <div style={{
+            width: 80, height: 100,
+            background: 'linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 50%, #1a1a1a 100%)',
+            borderRadius: 4, position: 'relative',
+            boxShadow: '0 4px 8px rgba(0,0,0,0.18)',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            color: '#fff', fontSize: 8, letterSpacing: 1,
+          }}>
+            <div style={{
+              width: 32, height: 4, background: 'rgba(255,255,255,0.18)',
+              borderRadius: 1, marginBottom: 6,
+            }} />
+            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 2, color: '#06A4FF' }}>ANKER</div>
+            <div style={{ fontSize: 7, marginTop: 2, color: 'rgba(255,255,255,0.7)' }}>POWERCORE 20K</div>
+            <div style={{
+              width: 22, height: 22, borderRadius: 999,
+              border: '1.5px solid rgba(255,255,255,0.4)',
+              marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 12,
+            }}>🔋</div>
+          </div>
+        </div>
+
+        {/* title + delivery */}
+        <div style={{ minWidth: 0, paddingTop: 2 }}>
+          <a style={{ fontSize: 15, lineHeight: 1.4, fontWeight: 400 }}>
+            Anker PowerCore 20100 Portable Charger, 20000mAh External Battery Pack with PowerIQ Technology
+          </a>
+          <div style={{ fontSize: 13, color: 'var(--amz-text-sub)', marginTop: 6 }}>
+            Sold by: <a>Anker Direct</a>
+          </div>
+          <div style={{
+            fontSize: 13, color: 'var(--amz-green)',
+            marginTop: 10, fontWeight: 700,
+            display: 'flex', alignItems: 'center', gap: 6,
+          }}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              width: 14, height: 14, borderRadius: 999, background: 'var(--amz-green)',
+              color: '#fff', fontSize: 9, fontWeight: 700,
+            }}>✓</span>
+            Delivered Monday, March 23
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--amz-text-sub)', marginTop: 3 }}>
+            Package was handed directly to a resident
+          </div>
+          <div style={{
+            marginTop: 10, fontSize: 13, display: 'flex', gap: 14,
+          }}>
+            <a>Track package</a>
+            <a>View invoice</a>
+            <a>Leave seller feedback</a>
+          </div>
+        </div>
+
+        {/* action stack */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'stretch' }}>
+          <button className="amz-btn" style={{ padding: '8px 12px' }}>Buy it again</button>
+          <button className="amz-btn" style={{ padding: '8px 12px' }}>View your item</button>
+          <button className={'amz-btn' + (supportActive ? ' active' : '')} style={{
+            padding: '8px 12px', fontWeight: supportActive ? 700 : 400,
+          }}>Get product support</button>
+          <button className="amz-btn" style={{ padding: '8px 12px' }}>Leave product review</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const ISSUES = [
+  { id: 'arrived', label: 'Package didn\'t arrive' },
+  { id: 'damaged', label: 'Item arrived damaged' },
+  { id: 'wrong',   label: 'Received the wrong item' },
+  { id: 'missing', label: 'Missing parts or accessories' },
+  { id: 'other',   label: 'Something else' },
+];
+
+function SupportPage({ phase, typed }) {
+  const selected = phase >= 3 ? 'arrived' : null;
+  return (
+    <div className="amz" style={{
+      background: 'var(--amz-card)', borderRadius: 8,
+      border: `1px solid var(--amz-border)`,
+      padding: 22, animation: 'fadein .3s ease both',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6 }}>
+        <a style={{ fontSize: 13 }}>← Back to Your Orders</a>
+      </div>
+      <h2 style={{ margin: '4px 0 4px', fontSize: 22, color: 'var(--amz-text)', fontWeight: 400 }}>
+        Get product support
+      </h2>
+      <div style={{ fontSize: 13, color: 'var(--amz-text-sub)', marginBottom: 18 }}>
+        Order <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>114-8829112-0034221</span>
+        {' '}· Anker PowerCore 20100 Portable Charger
+      </div>
+
+      <div style={{ fontSize: 14, color: 'var(--amz-text)', marginBottom: 10, fontWeight: 700 }}>
+        What is the issue with this product?
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+        {ISSUES.map((iss, i) => {
+          const on = selected === iss.id;
+          const focus = phase === 3 && iss.id === 'arrived';
+          return (
+            <label key={iss.id} style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '12px 14px', cursor: 'default',
+              borderTop: i === 0 ? `1px solid var(--amz-border)` : 'none',
+              borderBottom: `1px solid var(--amz-border)`,
+              background: focus ? 'rgba(255,153,0,0.08)' : 'transparent',
+              transition: 'background .2s',
+            }}>
+              <span style={{
+                width: 18, height: 18, borderRadius: 999,
+                border: `2px solid ${on ? 'var(--amz-link)' : '#888'}`,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                {on && (
+                  <span style={{
+                    width: 8, height: 8, borderRadius: 999, background: 'var(--amz-link)',
+                    animation: 'radioPop .2s ease both',
+                  }} />
+                )}
+              </span>
+              <span style={{
+                fontSize: 14, color: 'var(--amz-text)',
+                fontWeight: on ? 500 : 400,
+              }}>{iss.label}</span>
+            </label>
+          );
+        })}
+      </div>
+
+      {phase >= 4 && (
+        <div style={{ marginTop: 18, animation: 'fadein .3s ease both' }}>
+          <div style={{ fontSize: 14, color: 'var(--amz-text)', marginBottom: 6, fontWeight: 700 }}>
+            Please describe the issue
+          </div>
+          <div style={{
+            border: phase === 4 ? `2px solid var(--amz-orange)` : `1px solid var(--amz-border)`,
+            borderRadius: 4, padding: '10px 12px', minHeight: 84,
+            fontSize: 13, color: 'var(--amz-text)', background: '#fff', lineHeight: 1.5,
+            boxShadow: phase === 4 ? `0 0 0 3px rgba(255,153,0,0.18)` : 'inset 0 1px 2px rgba(0,0,0,0.05)',
+            transition: 'border-color .2s',
+            fontFamily: 'inherit',
+          }}>
+            {typed}
+            {phase === 4 && typed.length < REASON.length && (
+              <span style={{
+                display: 'inline-block', width: 1.5, height: 14, marginLeft: 1,
+                background: 'var(--amz-text)', verticalAlign: 'middle',
+                animation: 'caret 0.7s steps(2) infinite',
+              }} />
+            )}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--amz-text-sub)', marginTop: 6 }}>
+            {Math.min(typed.length, 1000)} / 1000 characters
+          </div>
+        </div>
+      )}
+
+      {phase >= 5 && phase < 6 && (
+        <div style={{
+          marginTop: 22, display: 'flex', alignItems: 'center', gap: 12,
+          animation: 'fadein .25s ease both',
+        }}>
+          <button className={'amz-btn gold' + (phase === 5 ? ' active' : '')}
+            style={{ padding: '10px 26px', fontSize: 14 }}>
+            Submit request
+          </button>
+          <a style={{ fontSize: 13 }}>Cancel</a>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ConfirmationPage() {
+  return (
+    <div className="amz" style={{
+      background: 'var(--amz-card)', borderRadius: 8,
+      border: `1px solid var(--amz-border)`,
+      padding: 26, animation: 'fadein .35s ease both',
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14,
+      }}>
+        <div style={{
+          width: 38, height: 38, borderRadius: 999, background: 'var(--amz-green)',
+          color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 22, fontWeight: 700,
+          boxShadow: '0 4px 12px rgba(6,125,98,0.35)',
+        }}>✓</div>
+        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 400, color: 'var(--amz-text)' }}>
+          Refund issued
+        </h2>
+      </div>
+
+      <div style={{
+        fontSize: 14, color: 'var(--amz-text)', lineHeight: 1.55, marginBottom: 14,
+      }}>
+        $42.99 has been refunded to your <strong>Visa ending in 4242</strong>.
+        Funds typically appear in 3–5 business days.
+      </div>
+
+      <div style={{
+        background: '#F7F8F8', border: '1px solid #EAEDED', borderRadius: 6,
+        padding: 14, fontSize: 13, color: 'var(--amz-text)',
+        display: 'grid', gridTemplateColumns: '160px 1fr', rowGap: 6, columnGap: 18,
+      }}>
+        <div style={{ color: 'var(--amz-text-sub)' }}>Order</div>
+        <div style={{ fontFamily: '"JetBrains Mono", monospace' }}>114-8829112-0034221</div>
+        <div style={{ color: 'var(--amz-text-sub)' }}>Refund amount</div>
+        <div><strong>$42.99</strong></div>
+        <div style={{ color: 'var(--amz-text-sub)' }}>Refund method</div>
+        <div>Visa ending in 4242</div>
+        <div style={{ color: 'var(--amz-text-sub)' }}>Confirmation</div>
+        <div style={{ fontFamily: '"JetBrains Mono", monospace' }}>{RECEIPT}</div>
+      </div>
+
+      <div style={{ marginTop: 16, display: 'flex', gap: 10 }}>
+        <button className="amz-btn gold" style={{ padding: '8px 16px' }}>Back to Your Orders</button>
+        <button className="amz-btn" style={{ padding: '8px 16px' }}>Print receipt</button>
+      </div>
+    </div>
+  );
+}
+
+function AmazonDemo() {
+  const [phase, setPhase] = React.useState(0);
+  const [typed, setTyped] = React.useState('');
+  const [runId, setRunId] = React.useState(0);
+  const done = phase >= PHASES.length - 1;
+
+  React.useEffect(() => {
+    if (phase >= PHASES.length - 1) return;
+    const t = setTimeout(() => setPhase(p => p + 1), PHASES[phase].ms);
+    return () => clearTimeout(t);
+  }, [phase, runId]);
+
+  React.useEffect(() => {
+    if (phase !== 4) return;
+    setTyped('');
+    let i = 0;
+    const id = setInterval(() => {
+      i++;
+      setTyped(REASON.slice(0, i));
+      if (i >= REASON.length) clearInterval(id);
+    }, 36);
+    return () => clearInterval(id);
+  }, [phase, runId]);
+
+  const replay = () => { setPhase(0); setTyped(''); setRunId(r => r + 1); };
+
+  const cur = CURSOR_POS[Math.min(phase, CURSOR_POS.length - 1)];
+  const onOrdersPage = phase >= 1 && phase < 3;
+  const onSupportPage = phase >= 3;
+
+  return (
+    <div style={{
+      width: 'min(1100px, 94vw)',
+      display: 'flex', flexDirection: 'column', gap: 20,
+    }}>
+      {/* title */}
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+        <div>
+          <div style={{
+            fontSize: 11, fontWeight: 700, color: 'var(--accent)',
+            textTransform: 'uppercase', letterSpacing: 1.4,
+          }}>Action Layer · live demo</div>
+          <div style={{ fontSize: 26, fontWeight: 600, marginTop: 4, letterSpacing: -0.4 }}>
+            Filing a refund on amazon.com
+          </div>
+          <div style={{ fontSize: 14, color: 'var(--ink-4)', marginTop: 4 }}>
+            Peep's vision agent flagged a package theft. Action Layer drives the real browser to file the refund.
+          </div>
+        </div>
+        <div style={{
+          fontSize: 11, color: 'var(--ink-4)',
+          fontFamily: '"JetBrains Mono", ui-monospace, monospace',
+        }}>{Math.min(phase + 1, PHASES.length)} / {PHASES.length}</div>
+      </div>
+
+      {/* mock browser */}
+      <div style={{
+        borderRadius: 14, overflow: 'hidden',
+        background: '#fff', color: 'var(--amz-text)',
+        border: '0.5px solid rgba(255,255,255,0.06)',
+        boxShadow: '0 30px 60px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.04)',
+        position: 'relative',
+      }}>
+        {/* browser chrome */}
+        <div style={{
+          background: '#f0f0f0', padding: '8px 12px',
+          display: 'flex', alignItems: 'center', gap: 10,
+          borderBottom: '0.5px solid #d0d0d0',
+        }}>
+          <div style={{ display: 'flex', gap: 5 }}>
+            {['#ff5f57','#ffbd2e','#28ca42'].map(c =>
+              <div key={c} style={{ width: 11, height: 11, borderRadius: 999, background: c }} />)}
+          </div>
+          <div style={{
+            flex: 1, padding: '5px 14px', borderRadius: 999, background: '#fff',
+            fontSize: 12, fontFamily: '"JetBrains Mono", ui-monospace, monospace',
+            color: '#444', border: '0.5px solid #d0d0d0',
+            display: 'flex', alignItems: 'center', gap: 6,
+          }}>
+            <span style={{ color: 'var(--amz-green)', fontSize: 10 }}>🔒</span>
+            {onSupportPage
+              ? 'amazon.com/gp/help/contact/contact.html?orderId=114-8829112-0034221'
+              : 'amazon.com/gp/your-account/order-details?orderID=114-8829112-0034221'}
+          </div>
+          <div style={{
+            fontSize: 10, color: '#888',
+            fontFamily: '"JetBrains Mono", ui-monospace, monospace',
+          }}>action-layer</div>
+        </div>
+
+        {/* AMAZON CHROME */}
+        <AmazonHeader />
+
+        {/* page body */}
+        <div style={{
+          position: 'relative', minHeight: 580,
+          background: 'var(--amz-page-bg)',
+          padding: '18px 22px 26px',
+        }}>
+          {/* breadcrumb / heading */}
+          <div className="amz" style={{
+            display: 'flex', alignItems: 'baseline', gap: 18, marginBottom: 14,
+          }}>
+            <h1 style={{
+              margin: 0, fontSize: 28, fontWeight: 400, color: 'var(--amz-text)',
+            }}>{onSupportPage ? 'Customer Service' : 'Your Orders'}</h1>
+            <div style={{ display: 'flex', gap: 20, marginLeft: 4 }}>
+              {!onSupportPage && (
+                <>
+                  <div className="amz-tab active">Orders</div>
+                  <div className="amz-tab">Buy Again</div>
+                  <div className="amz-tab">Not Yet Shipped</div>
+                  <div className="amz-tab">Cancelled Orders</div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* filter row (orders only) */}
+          {!onSupportPage && (
+            <div className="amz" style={{
+              display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16,
+              fontSize: 14, color: 'var(--amz-text)',
+            }}>
+              <strong>1 order</strong> placed in
+              <span style={{
+                background: '#fff', border: '1px solid var(--amz-border)',
+                borderRadius: 4, padding: '4px 10px',
+              }}>past 30 days ▾</span>
+              <span style={{ flex: 1 }} />
+              <input readOnly value="" placeholder="Search all orders"
+                style={{
+                  border: '1px solid var(--amz-border)', borderRadius: 4,
+                  padding: '6px 10px', fontSize: 13, background: '#fff',
+                  width: 220, outline: 'none', color: 'var(--amz-text)',
+                  fontFamily: 'inherit',
+                }} />
+              <button className="amz-btn" style={{ padding: '6px 14px' }}>Search Orders</button>
+            </div>
+          )}
+
+          {/* content */}
+          {phase === 0 && (
+            <div style={{
+              padding: 60, textAlign: 'center', color: '#888', fontSize: 14,
+              display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'center',
+              background: '#fff', borderRadius: 8, border: '1px solid var(--amz-border)',
+            }}>
+              <div style={{
+                width: 30, height: 30, borderRadius: 999,
+                border: `3px solid var(--amz-orange)`,
+                borderTopColor: 'transparent',
+                animation: 'spin 0.8s linear infinite',
+              }} />
+              <span>Loading your orders…</span>
+            </div>
+          )}
+
+          {onOrdersPage && (
+            <OrderCard highlight={phase >= 1 && phase <= 2} supportActive={phase === 2} />
+          )}
+
+          {onSupportPage && phase < 6 && (
+            <SupportPage phase={phase} typed={typed} />
+          )}
+
+          {phase === 6 && (
+            <ConfirmationPage />
+          )}
+
+          {/* fake cursor */}
+          <div style={{
+            position: 'absolute', pointerEvents: 'none', zIndex: 20,
+            left: `${cur.x}%`, top: `${cur.y}%`,
+            transform: 'translate(-2px, -2px)',
+            transition: 'left .6s cubic-bezier(.4,1.2,.4,1), top .6s cubic-bezier(.4,1.2,.4,1)',
+          }}>
+            <svg width="24" height="24" viewBox="0 0 18 18" style={{ filter: 'drop-shadow(0 1.5px 3px rgba(0,0,0,0.35))' }}>
+              <path d="M1.5 1.5 L1.5 13 L5 9.5 L7.5 14.5 L9.5 13.5 L7 8.5 L11.5 8.5 Z"
+                fill="#fff" stroke="#111" strokeWidth="1.1" strokeLinejoin="round" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Action Layer status footer */}
+        <div style={{
+          background: '#17140f', color: '#fff',
+          padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12,
+        }}>
+          <div style={{
+            width: 8, height: 8, borderRadius: 999,
+            background: phase >= 6 ? 'var(--accent)' : 'var(--amz-orange)',
+            animation: phase < 6 ? 'pulse 1.2s ease-in-out infinite' : undefined,
+            flexShrink: 0,
+          }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{
+              fontSize: 10, opacity: 0.6, textTransform: 'uppercase',
+              letterSpacing: 0.8, fontWeight: 600,
+            }}>Powered by Action Layer</div>
+            <div style={{
+              fontSize: 13, marginTop: 2, overflow: 'hidden',
+              textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>{PHASES[Math.min(phase, PHASES.length - 1)].status}</div>
+          </div>
+          <div style={{
+            fontSize: 10, opacity: 0.65,
+            fontFamily: '"JetBrains Mono", ui-monospace, monospace',
+          }}>{Math.min(phase + 1, PHASES.length)}/{PHASES.length}</div>
+        </div>
+      </div>
+
+      {/* replay control */}
+      <div style={{ display: 'flex', justifyContent: 'center', minHeight: 44 }}>
+        {done ? (
+          <button onClick={replay} style={{
+            padding: '12px 28px', borderRadius: 999,
+            background: 'var(--accent)', color: '#fff',
+            border: 'none', cursor: 'pointer',
+            fontSize: 14, fontWeight: 600, letterSpacing: 0.2,
+            boxShadow: '0 8px 24px rgba(106,153,113,0.4)',
+            animation: 'fadein .3s ease both',
+          }}>↻ Replay</button>
+        ) : (
+          <div style={{
+            fontSize: 11, color: 'var(--ink-4)',
+            fontFamily: '"JetBrains Mono", ui-monospace, monospace',
+          }}>recording-friendly · no controls until complete</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<AmazonDemo />);
+</script>
+</body>
+</html>

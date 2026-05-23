@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Amazon — Sign In (mock)</title>
+  <meta name="robots" content="noindex">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+           background: #eaeded; margin: 0; color: #111; }
+    header { background: #131a22; color: #fff; padding: 10px 20px; font-size: 14px; }
+    main { max-width: 360px; margin: 40px auto; background: #fff; border: 1px solid #ddd;
+           border-radius: 4px; padding: 20px; }
+    h1 { font-size: 22px; font-weight: 400; margin: 0 0 14px; }
+    label { display: block; font-size: 13px; font-weight: 600; margin: 10px 0 4px; }
+    input[type=email], input[type=password], textarea, select {
+      width: 100%; box-sizing: border-box; padding: 6px 8px;
+      border: 1px solid #a6a6a6; border-radius: 3px; font-size: 14px;
+    }
+    button { width: 100%; padding: 8px; margin-top: 14px; background: #f0c14b;
+             border: 1px solid #a88734; border-radius: 3px; cursor: pointer; font-size: 13px; }
+    .ok { color: #007600; }
+    .err { color: #c40000; }
+    nav.crumbs { font-size: 12px; color: #555; margin-bottom: 10px; }
+    .order { border-top: 1px solid #eee; padding: 10px 0; }
+    .receipt { background: #f6fff6; border: 1px solid #cdebcd; padding: 12px; border-radius: 4px;
+               font-family: ui-monospace, monospace; font-size: 12px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <header>amazon · mock target site (not real)</header>
+  <main id="app"></main>
+
+<script>
+/* eslint-disable */
+// Minimal SPA: /login → /orders → /orders/:id → /orders/:id/refund → receipt
+const STATE = {
+  loggedIn: false,
+  user: null,
+  orders: [
+    { id: 'AMZ-204-9183711-3322048', title: 'Anker PowerCore 20K Portable Charger',  delivered: true },
+    { id: 'AMZ-114-7740022-9981125', title: 'Logitech MX Master 3S Wireless Mouse', delivered: true },
+  ],
+  receipts: [],
+};
+
+function $(html) { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstChild; }
+function navigate(path) { window.history.pushState({}, '', path); render(); }
+window.addEventListener('popstate', render);
+
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+  const path = window.location.pathname.replace(/^\/mock-amazon/, '') || '/';
+
+  if (!STATE.loggedIn && path !== '/login') return navigate('/login');
+
+  if (path === '/login') return app.appendChild(renderLogin());
+  if (path === '/orders') return app.appendChild(renderOrders());
+  const refundMatch = path.match(/^\/orders\/([^/]+)\/refund$/);
+  if (refundMatch) return app.appendChild(renderRefundForm(refundMatch[1]));
+  const orderMatch = path.match(/^\/orders\/([^/]+)$/);
+  if (orderMatch) return app.appendChild(renderOrder(orderMatch[1]));
+  return navigate('/orders');
+}
+
+function renderLogin() {
+  const el = $(`<div>
+    <h1>Sign in</h1>
+    <form id="loginForm">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" required value="jamie@hello.com">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" required value="hunter2">
+      <button type="submit">Sign in</button>
+    </form>
+  </div>`);
+  el.querySelector('#loginForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const email = el.querySelector('#email').value;
+    STATE.loggedIn = true;
+    STATE.user = email;
+    navigate('/orders');
+  });
+  return el;
+}
+
+function renderOrders() {
+  const el = $(`<div>
+    <nav class="crumbs">Your Account › Your Orders</nav>
+    <h1>Your Orders</h1>
+    <div id="orders"></div>
+  </div>`);
+  STATE.orders.forEach(o => {
+    const row = $(`<div class="order">
+      <div><strong>${o.title}</strong></div>
+      <div style="font-family:ui-monospace,monospace;font-size:12px;color:#555">${o.id}</div>
+      <div style="margin-top:6px"><a href="#" data-id="${o.id}">Open order →</a></div>
+    </div>`);
+    row.querySelector('a').addEventListener('click', e => {
+      e.preventDefault(); navigate('/orders/' + o.id);
+    });
+    el.querySelector('#orders').appendChild(row);
+  });
+  return el;
+}
+
+function renderOrder(id) {
+  const order = STATE.orders.find(o => o.id === id);
+  if (!order) { navigate('/orders'); return $('<div/>'); }
+  const el = $(`<div>
+    <nav class="crumbs">Your Orders › ${order.id}</nav>
+    <h1>${order.title}</h1>
+    <p style="font-size:13px">Order id: <span style="font-family:ui-monospace,monospace">${order.id}</span></p>
+    <button id="refundBtn">Request refund / report problem</button>
+  </div>`);
+  el.querySelector('#refundBtn').addEventListener('click', () => navigate(`/orders/${id}/refund`));
+  return el;
+}
+
+function renderRefundForm(id) {
+  const order = STATE.orders.find(o => o.id === id);
+  if (!order) { navigate('/orders'); return $('<div/>'); }
+  const el = $(`<div>
+    <nav class="crumbs">Your Orders › ${order.id} › Refund</nav>
+    <h1>Request a refund</h1>
+    <form id="rf">
+      <label for="reason">Reason</label>
+      <select id="reason" name="reason">
+        <option value="package_stolen">Package stolen from doorstep</option>
+        <option value="never_arrived">Package never arrived</option>
+        <option value="damaged">Item damaged</option>
+        <option value="wrong_item">Wrong item</option>
+      </select>
+      <label for="notes">Notes (optional)</label>
+      <textarea id="notes" name="notes" rows="3"></textarea>
+      <button type="submit">Submit refund request</button>
+    </form>
+  </div>`);
+  el.querySelector('#rf').addEventListener('submit', e => {
+    e.preventDefault();
+    const reason = el.querySelector('#reason').value;
+    const notes  = el.querySelector('#notes').value;
+    const receipt = {
+      id: 'RFND-' + Math.random().toString(36).slice(2, 7).toUpperCase()
+            + '-' + Math.random().toString(36).slice(2, 6).toUpperCase(),
+      order_id: order.id, reason, notes,
+      issued_at: new Date().toISOString(),
+      status: 'approved_pending_credit',
+    };
+    STATE.receipts.push(receipt);
+    const r = $(`<div>
+      <h1 class="ok">Refund filed</h1>
+      <div class="receipt" id="receiptText"></div>
+      <p style="margin-top:14px"><a href="#" id="back">Back to orders</a></p>
+    </div>`);
+    r.querySelector('#receiptText').textContent = JSON.stringify(receipt, null, 2);
+    r.querySelector('#back').addEventListener('click', ev => { ev.preventDefault(); navigate('/orders'); });
+    document.getElementById('app').innerHTML = '';
+    document.getElementById('app').appendChild(r);
+  });
+  return el;
+}
+
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1440" />
+<title>Peep — Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ink: {
+            950: '#faf8f3',
+            900: '#f4f1e9',
+            850: '#ffffff',
+            800: '#f0ece2',
+            750: '#e9e4d6',
+            700: '#dfdacb',
+            600: '#c4bfae',
+            500: '#9a9489',
+            400: '#6f6a61',
+            300: '#4e4942',
+            200: '#2b2823',
+            100: '#17140f',
+          },
+          em: {
+            DEFAULT: '#706b8e',
+            soft: 'rgba(112,107,142,0.10)',
+            line: 'rgba(112,107,142,0.30)',
+          },
+          brand: {
+            DEFAULT: '#706b8e',
+            soft: 'rgba(112,107,142,0.10)',
+            line: 'rgba(112,107,142,0.30)',
+          }
+        },
+        fontFamily: {
+          sans: ['Inter','system-ui','-apple-system','sans-serif'],
+          mono: ['JetBrains Mono','ui-monospace','SFMono-Regular','Menlo','Consolas','monospace'],
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html, body { background: #faf8f3; color: #17140f; font-family: 'Inter', system-ui, sans-serif; font-size: 15px; font-feature-settings: 'cv11', 'ss01', 'ss03'; }
+  * { -webkit-font-smoothing: antialiased; }
+  ::selection { background: rgba(112,107,142,0.20); color: #17140f; }
+  .scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+  .scroll-thin::-webkit-scrollbar-thumb { background: #e0dccd; border-radius: 8px; }
+  .scroll-thin::-webkit-scrollbar-track { background: transparent; }
+  .hairline { box-shadow: inset 0 0 0 1px rgba(23,20,15,0.07); }
+  .hairline-t { box-shadow: inset 0 1px 0 0 rgba(23,20,15,0.07); }
+  .hairline-b { box-shadow: inset 0 -1px 0 0 rgba(23,20,15,0.07); }
+  .hairline-r { box-shadow: inset -1px 0 0 0 rgba(23,20,15,0.07); }
+  .hairline-l { box-shadow: inset 1px 0 0 0 rgba(23,20,15,0.07); }
+  @keyframes pulseDot {
+    0%,100% { box-shadow: 0 0 0 0 var(--pc, rgba(112,107,142,0.45)); }
+    50% { box-shadow: 0 0 0 5px transparent; }
+  }
+  .pulse-dot { animation: pulseDot 1.8s ease-in-out infinite; }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .slide-in { animation: slideIn .35s ease-out; }
+  @keyframes flash {
+    0% { background-color: rgba(112,107,142,0.10); }
+    100% { background-color: transparent; }
+  }
+  .flash { animation: flash 1.2s ease-out; }
+  @keyframes scanline {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(2200%); }
+  }
+  .scanline { animation: scanline 4.5s linear infinite; }
+  .grid-bg {
+    background-image:
+      linear-gradient(to right, #ffffff08 1px, transparent 1px),
+      linear-gradient(to bottom, #ffffff08 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+  .noise {
+    background-image: radial-gradient(rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 3px 3px;
+  }
+  details > summary { list-style: none; cursor: pointer; }
+  details > summary::-webkit-details-marker { display: none; }
+  input[type="range"] { -webkit-appearance: none; appearance: none; background: transparent; }
+  input[type="range"]::-webkit-slider-runnable-track { height: 3px; background: #e9e4d6; border-radius: 999px; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; height: 14px; width: 14px; margin-top: -5.5px; background: #706b8e; border-radius: 999px; border: none; cursor: pointer; }
+  input[type="checkbox"] { accent-color: #706b8e; }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/lucide@0.453.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+</head>
+<body class="bg-ink-950 text-ink-100 font-sans">
+  <div id="root"></div>
+
+  <script type="text/babel" src="agentic/event-contract.jsx"></script>
+  <script type="text/babel" src="agentic/vision-agent.jsx"></script>
+  <script type="text/babel" src="agentic/theft-detector.jsx"></script>
+  <script type="text/babel" src="agentic/fleeing-detector.jsx"></script>
+  <script type="text/babel" src="agentic/alerts.jsx"></script>
+  <script type="text/babel" src="agentic/orchestration-agent.jsx"></script>
+  <script type="text/babel" src="data.jsx"></script>
+  <script type="text/babel" src="primitives.jsx"></script>
+  <script type="text/babel" src="sidebar.jsx"></script>
+  <script type="text/babel" src="agent-panel.jsx"></script>
+  <script type="text/babel" src="view-live.jsx"></script>
+  <script type="text/babel" src="view-agents.jsx"></script>
+  <script type="text/babel" src="view-inbox.jsx"></script>
+  <script type="text/babel" src="view-alerts.jsx"></script>
+  <script type="text/babel" src="view-logs.jsx"></script>
+  <script type="text/babel" src="view-usage.jsx"></script>
+  <script type="text/babel" src="view-settings.jsx"></script>
+  <script type="text/babel" src="app.jsx"></script>
+</body>
+</html>

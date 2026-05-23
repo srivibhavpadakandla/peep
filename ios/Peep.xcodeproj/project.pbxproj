@@ -1,0 +1,398 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		05A5E09D4CBA88F39AB9C799 /* SeverityBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 469313E9A72332A999DDAA87 /* SeverityBadge.swift */; };
+		18A85D10C75DEF2EBADCAB70 /* ExpectedDelivery.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0E46F394C97696473105D7C /* ExpectedDelivery.swift */; };
+		29A618A2D979A9D150D7C01E /* PeepDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F711039C9042C4450F9EE97 /* PeepDesign.swift */; };
+		3FA8A408ED9F0586B2885B4F /* StatusStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFD74464F65FB1672E1A8123 /* StatusStrip.swift */; };
+		4183EE4ED7A3441AF37FB249 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 519C9AD58FC7A3005017531A /* RootView.swift */; };
+		419CE9E9AACB20084BB2543A /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 397C9853EABB26C444459BE0 /* AppState.swift */; };
+		4B006F4BB94272AC1C3DE0C2 /* AgenticClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29D4D087ACB6C3184F15188D /* AgenticClient.swift */; };
+		5C206139966461D87F6CCCA9 /* PeepApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFAE0B2CB77039CDFC8AD156 /* PeepApp.swift */; };
+		64F5925970E9E930BCDCEFE0 /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECB838732508184FD13EDA1F /* ActivityView.swift */; };
+		6AD461855B884FF709C59F54 /* CameraPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = E99C4D79BBD3048A0F8D62A8 /* CameraPreview.swift */; };
+		6DFBD59E602F2D08F3E7C640 /* EventRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DC7E020651BCCA11BACAD86 /* EventRow.swift */; };
+		7AA925A9E69DFA94119A08FB /* Color+Peep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08762C93CBF3ECC571014A5D /* Color+Peep.swift */; };
+		7AAE62098713ACB116EC81A6 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7E163A1D624C994CE7EAA3F /* SettingsView.swift */; };
+		88A179F82EB736C45C7BBAD0 /* EventDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D585AB3A207825225D9D46F9 /* EventDetailView.swift */; };
+		9231CAAD0A7AE350E9F91697 /* InboxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C743DD1275DAAE55E71298F /* InboxView.swift */; };
+		C7206114BC923DAA8EB3D306 /* Event.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14FCC8A32ABBBA49060FD773 /* Event.swift */; };
+		E5A782855EB409E76EBD23B4 /* LiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09EFF839D95F164DCDC37AE3 /* LiveView.swift */; };
+		F3FF5163B9AC56DE99C64784 /* PeepTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F82D98BF859B839B23816F /* PeepTabBar.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		08762C93CBF3ECC571014A5D /* Color+Peep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Peep.swift"; sourceTree = "<group>"; };
+		09EFF839D95F164DCDC37AE3 /* LiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveView.swift; sourceTree = "<group>"; };
+		14FCC8A32ABBBA49060FD773 /* Event.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Event.swift; sourceTree = "<group>"; };
+		244E31464E4C2811CF885897 /* Peep.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Peep.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		29D4D087ACB6C3184F15188D /* AgenticClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgenticClient.swift; sourceTree = "<group>"; };
+		32528709573ED985FFBA265B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		397C9853EABB26C444459BE0 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		469313E9A72332A999DDAA87 /* SeverityBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeverityBadge.swift; sourceTree = "<group>"; };
+		519C9AD58FC7A3005017531A /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		5C743DD1275DAAE55E71298F /* InboxView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxView.swift; sourceTree = "<group>"; };
+		5DC7E020651BCCA11BACAD86 /* EventRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventRow.swift; sourceTree = "<group>"; };
+		63F82D98BF859B839B23816F /* PeepTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeepTabBar.swift; sourceTree = "<group>"; };
+		8F711039C9042C4450F9EE97 /* PeepDesign.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeepDesign.swift; sourceTree = "<group>"; };
+		B0E46F394C97696473105D7C /* ExpectedDelivery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpectedDelivery.swift; sourceTree = "<group>"; };
+		BFD74464F65FB1672E1A8123 /* StatusStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusStrip.swift; sourceTree = "<group>"; };
+		C7E163A1D624C994CE7EAA3F /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		D585AB3A207825225D9D46F9 /* EventDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventDetailView.swift; sourceTree = "<group>"; };
+		E99C4D79BBD3048A0F8D62A8 /* CameraPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreview.swift; sourceTree = "<group>"; };
+		ECB838732508184FD13EDA1F /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
+		FFAE0B2CB77039CDFC8AD156 /* PeepApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeepApp.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		11E43659BDBA89E395B37AD3 = {
+			isa = PBXGroup;
+			children = (
+				436ED8C150F66BCF771AAD65 /* Sources */,
+				F7252D750F29A3B258F7DC3A /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		436ED8C150F66BCF771AAD65 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				08762C93CBF3ECC571014A5D /* Color+Peep.swift */,
+				32528709573ED985FFBA265B /* Info.plist */,
+				FFAE0B2CB77039CDFC8AD156 /* PeepApp.swift */,
+				519C9AD58FC7A3005017531A /* RootView.swift */,
+				D3C0F25BA38026A2CE4E378F /* Components */,
+				8ACBF3FD2AAD326282DE1E6F /* Models */,
+				CADD15B8F7126F9576395C34 /* Views */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		8ACBF3FD2AAD326282DE1E6F /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				397C9853EABB26C444459BE0 /* AppState.swift */,
+				14FCC8A32ABBBA49060FD773 /* Event.swift */,
+				B0E46F394C97696473105D7C /* ExpectedDelivery.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		CADD15B8F7126F9576395C34 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				ECB838732508184FD13EDA1F /* ActivityView.swift */,
+				D585AB3A207825225D9D46F9 /* EventDetailView.swift */,
+				5C743DD1275DAAE55E71298F /* InboxView.swift */,
+				09EFF839D95F164DCDC37AE3 /* LiveView.swift */,
+				C7E163A1D624C994CE7EAA3F /* SettingsView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		D3C0F25BA38026A2CE4E378F /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				29D4D087ACB6C3184F15188D /* AgenticClient.swift */,
+				E99C4D79BBD3048A0F8D62A8 /* CameraPreview.swift */,
+				5DC7E020651BCCA11BACAD86 /* EventRow.swift */,
+				8F711039C9042C4450F9EE97 /* PeepDesign.swift */,
+				63F82D98BF859B839B23816F /* PeepTabBar.swift */,
+				469313E9A72332A999DDAA87 /* SeverityBadge.swift */,
+				BFD74464F65FB1672E1A8123 /* StatusStrip.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		F7252D750F29A3B258F7DC3A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				244E31464E4C2811CF885897 /* Peep.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		D2A38880DAC252FF62620261 /* Peep */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3A8CD092C3F3CC98EFA50D0C /* Build configuration list for PBXNativeTarget "Peep" */;
+			buildPhases = (
+				303894EA5D7C01B2A6367A40 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Peep;
+			packageProductDependencies = (
+			);
+			productName = Peep;
+			productReference = 244E31464E4C2811CF885897 /* Peep.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		CB7B9CB7D04E3D2274B81515 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					D2A38880DAC252FF62620261 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = B451D3FD4F26AB2F14C1FDA4 /* Build configuration list for PBXProject "Peep" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 11E43659BDBA89E395B37AD3;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = F7252D750F29A3B258F7DC3A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D2A38880DAC252FF62620261 /* Peep */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		303894EA5D7C01B2A6367A40 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				64F5925970E9E930BCDCEFE0 /* ActivityView.swift in Sources */,
+				4B006F4BB94272AC1C3DE0C2 /* AgenticClient.swift in Sources */,
+				419CE9E9AACB20084BB2543A /* AppState.swift in Sources */,
+				6AD461855B884FF709C59F54 /* CameraPreview.swift in Sources */,
+				7AA925A9E69DFA94119A08FB /* Color+Peep.swift in Sources */,
+				C7206114BC923DAA8EB3D306 /* Event.swift in Sources */,
+				88A179F82EB736C45C7BBAD0 /* EventDetailView.swift in Sources */,
+				6DFBD59E602F2D08F3E7C640 /* EventRow.swift in Sources */,
+				18A85D10C75DEF2EBADCAB70 /* ExpectedDelivery.swift in Sources */,
+				9231CAAD0A7AE350E9F91697 /* InboxView.swift in Sources */,
+				E5A782855EB409E76EBD23B4 /* LiveView.swift in Sources */,
+				5C206139966461D87F6CCCA9 /* PeepApp.swift in Sources */,
+				29A618A2D979A9D150D7C01E /* PeepDesign.swift in Sources */,
+				F3FF5163B9AC56DE99C64784 /* PeepTabBar.swift in Sources */,
+				4183EE4ED7A3441AF37FB249 /* RootView.swift in Sources */,
+				7AAE62098713ACB116EC81A6 /* SettingsView.swift in Sources */,
+				05A5E09D4CBA88F39AB9C799 /* SeverityBadge.swift in Sources */,
+				3FA8A408ED9F0586B2885B4F /* StatusStrip.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		06A94BCB48B92F02CCBA0079 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Sources/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Peep;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Peep uses the camera to show the live doorstep feed.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.peep.app;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		2392D41071C5A29929B47F06 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Sources/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Peep;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Peep uses the camera to show the live doorstep feed.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.peep.app;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		ABB8620AA2888CE7D084BF98 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		D42A410440202058320B12A7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		3A8CD092C3F3CC98EFA50D0C /* Build configuration list for PBXNativeTarget "Peep" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				06A94BCB48B92F02CCBA0079 /* Debug */,
+				2392D41071C5A29929B47F06 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B451D3FD4F26AB2F14C1FDA4 /* Build configuration list for PBXProject "Peep" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D42A410440202058320B12A7 /* Debug */,
+				ABB8620AA2888CE7D084BF98 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = CB7B9CB7D04E3D2274B81515 /* Project object */;
+}

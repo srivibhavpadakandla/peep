@@ -127,7 +127,6 @@ export default function DemoCockpit() {
                     : "text-neutral-400 hover:bg-neutral-900/50 border border-transparent"
                 }`}
               >
-                <span className="text-base">{t.icon}</span>
                 <span className="flex-1">{t.label}</span>
                 {active && <span className="w-1 h-4 bg-emerald-500 rounded-sm" />}
               </button>

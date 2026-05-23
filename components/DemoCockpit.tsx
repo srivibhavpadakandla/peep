@@ -22,10 +22,16 @@ export default function DemoCockpit() {
   const [target, setTarget] = useState("backpack");
   const [orchestrationMode, setOrchestrationMode] = useState<string>("");
   const [crimeConfig, setCrimeConfig] = useState<CrimeConfig>({
+    enabled: true,
     quietHoursEnabled: true,
     quietHoursStart: 22,
     quietHoursEnd: 5,
     dwellMs: 5000,
+    cooldownMs: 60_000,
+    oncePerSession: true,
+    sessionClearMs: 10_000,
+    requireMovement: false,
+    movementThresholdPx: 60,
   });
 
   useEffect(() => {

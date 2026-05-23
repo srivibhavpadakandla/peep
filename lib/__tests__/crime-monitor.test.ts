@@ -112,3 +112,105 @@ describe("CrimeMonitor — priority ordering", () => {
     expect(d?.event_type).toBe("weapon_detected");
   });
 });
+
+describe("CrimeMonitor — master enable", () => {
+  it("returns null for everything when enabled=false", () => {
+    const cm = new CrimeMonitor({ enabled: false, dwellMs: 0, cooldownMs: 0, quietHoursEnabled: false });
+    expect(cm.ingest([person(), knife()], 0, ctx)).toBeNull();
+  });
+});
+
+describe("CrimeMonitor — fire-once-per-session", () => {
+  it("fires only one alert per type per session", () => {
+    const cm = new CrimeMonitor({
+      dwellMs: 100,
+      cooldownMs: 0,
+      oncePerSession: true,
+      sessionClearMs: 1000,
+      quietHoursEnabled: false,
+    });
+    cm.ingest([person()], 0, ctx);
+    const a = cm.ingest([person()], 200, ctx);
+    expect(a?.event_type).toBe("person_loitering");
+    // Within the same session — no re-fire, even seconds later.
+    expect(cm.ingest([person()], 5000, ctx)).toBeNull();
+    expect(cm.ingest([person()], 10000, ctx)).toBeNull();
+  });
+
+  it("starts a new session after the person leaves long enough", () => {
+    const cm = new CrimeMonitor({
+      dwellMs: 100,
+      cooldownMs: 0,
+      oncePerSession: true,
+      sessionClearMs: 500,
+      quietHoursEnabled: false,
+    });
+    cm.ingest([person()], 0, ctx);
+    expect(cm.ingest([person()], 200, ctx)?.event_type).toBe("person_loitering");
+
+    // Person leaves for longer than sessionClearMs.
+    cm.ingest([], 300, ctx);
+    cm.ingest([], 1000, ctx);
+    cm.ingest([], 1500, ctx);
+    // Comes back — new session, must be allowed to fire again.
+    cm.ingest([person()], 1600, ctx);
+    expect(cm.ingest([person()], 1800, ctx)?.event_type).toBe("person_loitering");
+  });
+
+  it("does NOT start a new session if the person comes back inside the clearance window", () => {
+    const cm = new CrimeMonitor({
+      dwellMs: 100,
+      cooldownMs: 0,
+      oncePerSession: true,
+      sessionClearMs: 1000,
+      quietHoursEnabled: false,
+    });
+    cm.ingest([person()], 0, ctx);
+    expect(cm.ingest([person()], 200, ctx)?.event_type).toBe("person_loitering");
+
+    cm.ingest([], 300, ctx);
+    cm.ingest([person()], 500, ctx); // came back inside clearance — same session
+    cm.ingest([person()], 700, ctx);
+    expect(cm.ingest([person()], 1500, ctx)).toBeNull();
+  });
+});
+
+describe("CrimeMonitor — movement gate", () => {
+  const staticPerson = (t: number, score = 0.9) => ({
+    label: "person",
+    score,
+    bbox: [100, 100, 50, 80] as [number, number, number, number],
+    _: t,
+  });
+  const movedPerson = (score = 0.9) => ({
+    label: "person",
+    score,
+    bbox: [300, 100, 50, 80] as [number, number, number, number],
+  });
+
+  it("does NOT fire when requireMovement is on and person hasn't moved", () => {
+    const cm = new CrimeMonitor({
+      dwellMs: 100,
+      cooldownMs: 0,
+      requireMovement: true,
+      movementThresholdPx: 50,
+      quietHoursEnabled: false,
+    });
+    cm.ingest([staticPerson(0)], 0, ctx);
+    cm.ingest([staticPerson(50)], 50, ctx);
+    expect(cm.ingest([staticPerson(200)], 200, ctx)).toBeNull();
+  });
+
+  it("fires when the person has moved past the threshold", () => {
+    const cm = new CrimeMonitor({
+      dwellMs: 100,
+      cooldownMs: 0,
+      requireMovement: true,
+      movementThresholdPx: 50,
+      quietHoursEnabled: false,
+    });
+    cm.ingest([staticPerson(0)], 0, ctx);
+    cm.ingest([movedPerson()], 50, ctx); // big jump
+    expect(cm.ingest([movedPerson()], 200, ctx)?.event_type).toBe("person_loitering");
+  });
+});

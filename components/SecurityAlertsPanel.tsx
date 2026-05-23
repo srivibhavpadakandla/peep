@@ -6,10 +6,16 @@ import type { SecurityAlert } from "@/lib/security/alerts";
 const REFRESH_MS = 2000;
 
 export interface CrimeConfig {
+  enabled: boolean;
   quietHoursEnabled: boolean;
   quietHoursStart: number;
   quietHoursEnd: number;
   dwellMs: number;
+  cooldownMs: number;
+  oncePerSession: boolean;
+  sessionClearMs: number;
+  requireMovement: boolean;
+  movementThresholdPx: number;
 }
 
 interface Props {
@@ -70,48 +76,113 @@ export default function SecurityAlertsPanel({ config, onChange }: Props) {
         <label className="flex items-center gap-1.5 col-span-2">
           <input
             type="checkbox"
-            checked={config.quietHoursEnabled}
-            onChange={(e) => onChange({ ...config, quietHoursEnabled: e.target.checked })}
+            checked={config.enabled}
+            onChange={(e) => onChange({ ...config, enabled: e.target.checked })}
             className="accent-emerald-500"
           />
-          <span>Quiet hours enabled</span>
+          <span className="font-medium">Crime monitor enabled</span>
         </label>
-        <label className="flex flex-col gap-0.5">
-          <span className="text-neutral-400">Start: {hourLabel(config.quietHoursStart)}</span>
-          <input
-            type="range"
-            min={0}
-            max={23}
-            value={config.quietHoursStart}
-            onChange={(e) => onChange({ ...config, quietHoursStart: Number(e.target.value) })}
-            disabled={!config.quietHoursEnabled}
-          />
-        </label>
-        <label className="flex flex-col gap-0.5">
-          <span className="text-neutral-400">End: {hourLabel(config.quietHoursEnd)}</span>
-          <input
-            type="range"
-            min={0}
-            max={23}
-            value={config.quietHoursEnd}
-            onChange={(e) => onChange({ ...config, quietHoursEnd: Number(e.target.value) })}
-            disabled={!config.quietHoursEnabled}
-          />
-        </label>
-        <label className="flex flex-col gap-0.5 col-span-2">
-          <span className="text-neutral-400">Loitering threshold: {(config.dwellMs / 1000).toFixed(1)}s</span>
-          <input
-            type="range"
-            min={1000}
-            max={15000}
-            step={500}
-            value={config.dwellMs}
-            onChange={(e) => onChange({ ...config, dwellMs: Number(e.target.value) })}
-          />
-        </label>
-        <div className="col-span-2 text-[10px] text-neutral-500">
-          {currentlyQuiet(config) ? "Currently in quiet hours." : "Not currently quiet hours."}
-        </div>
+
+        <fieldset className="col-span-2 border border-neutral-800 rounded p-2 space-y-1.5 disabled:opacity-50" disabled={!config.enabled}>
+          <legend className="px-1 text-[10px] uppercase tracking-wide text-neutral-500">Detection</legend>
+          <label className="flex flex-col gap-0.5">
+            <span className="text-neutral-400">Loitering threshold: {(config.dwellMs / 1000).toFixed(1)}s</span>
+            <input
+              type="range" min={1000} max={15000} step={500}
+              value={config.dwellMs}
+              onChange={(e) => onChange({ ...config, dwellMs: Number(e.target.value) })}
+            />
+          </label>
+        </fieldset>
+
+        <fieldset className="col-span-2 border border-neutral-800 rounded p-2 space-y-1.5 disabled:opacity-50" disabled={!config.enabled}>
+          <legend className="px-1 text-[10px] uppercase tracking-wide text-neutral-500">Repeat-fire control</legend>
+          <label className="flex items-center gap-1.5">
+            <input
+              type="checkbox"
+              checked={config.oncePerSession}
+              onChange={(e) => onChange({ ...config, oncePerSession: e.target.checked })}
+              className="accent-emerald-500"
+            />
+            <span>Fire once per session</span>
+          </label>
+          <label className="flex flex-col gap-0.5">
+            <span className="text-neutral-400">Cooldown: {(config.cooldownMs / 1000).toFixed(0)}s</span>
+            <input
+              type="range" min={5000} max={300000} step={5000}
+              value={config.cooldownMs}
+              onChange={(e) => onChange({ ...config, cooldownMs: Number(e.target.value) })}
+              disabled={config.oncePerSession}
+            />
+          </label>
+          <label className="flex flex-col gap-0.5">
+            <span className="text-neutral-400">Session ends after absent: {(config.sessionClearMs / 1000).toFixed(0)}s</span>
+            <input
+              type="range" min={2000} max={60000} step={1000}
+              value={config.sessionClearMs}
+              onChange={(e) => onChange({ ...config, sessionClearMs: Number(e.target.value) })}
+              disabled={!config.oncePerSession}
+            />
+          </label>
+        </fieldset>
+
+        <fieldset className="col-span-2 border border-neutral-800 rounded p-2 space-y-1.5 disabled:opacity-50" disabled={!config.enabled}>
+          <legend className="px-1 text-[10px] uppercase tracking-wide text-neutral-500">Movement gate</legend>
+          <label className="flex items-center gap-1.5">
+            <input
+              type="checkbox"
+              checked={config.requireMovement}
+              onChange={(e) => onChange({ ...config, requireMovement: e.target.checked })}
+              className="accent-emerald-500"
+            />
+            <span>Require movement to fire loitering</span>
+          </label>
+          <label className="flex flex-col gap-0.5">
+            <span className="text-neutral-400">Movement threshold: {config.movementThresholdPx}px</span>
+            <input
+              type="range" min={10} max={300} step={5}
+              value={config.movementThresholdPx}
+              onChange={(e) => onChange({ ...config, movementThresholdPx: Number(e.target.value) })}
+              disabled={!config.requireMovement}
+            />
+          </label>
+        </fieldset>
+
+        <fieldset className="col-span-2 border border-neutral-800 rounded p-2 space-y-1.5 disabled:opacity-50" disabled={!config.enabled}>
+          <legend className="px-1 text-[10px] uppercase tracking-wide text-neutral-500">Quiet hours</legend>
+          <label className="flex items-center gap-1.5">
+            <input
+              type="checkbox"
+              checked={config.quietHoursEnabled}
+              onChange={(e) => onChange({ ...config, quietHoursEnabled: e.target.checked })}
+              className="accent-emerald-500"
+            />
+            <span>Enable after-hours alerts</span>
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="flex flex-col gap-0.5">
+              <span className="text-neutral-400">Start: {hourLabel(config.quietHoursStart)}</span>
+              <input
+                type="range" min={0} max={23}
+                value={config.quietHoursStart}
+                onChange={(e) => onChange({ ...config, quietHoursStart: Number(e.target.value) })}
+                disabled={!config.quietHoursEnabled}
+              />
+            </label>
+            <label className="flex flex-col gap-0.5">
+              <span className="text-neutral-400">End: {hourLabel(config.quietHoursEnd)}</span>
+              <input
+                type="range" min={0} max={23}
+                value={config.quietHoursEnd}
+                onChange={(e) => onChange({ ...config, quietHoursEnd: Number(e.target.value) })}
+                disabled={!config.quietHoursEnabled}
+              />
+            </label>
+          </div>
+          <div className="text-[10px] text-neutral-500">
+            {currentlyQuiet(config) ? "Currently in quiet hours." : "Not currently quiet hours."}
+          </div>
+        </fieldset>
       </div>
 
       <div className="flex items-center gap-2 mb-2">

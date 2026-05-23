@@ -1,92 +1,81 @@
 import SwiftUI
 
+/// Settings — grouped Form. Sage accent shows up only on actions (toggles
+/// on-state, primary CTA). Integration rows are text-only: no avatar tiles,
+/// status labels just colored typography.
 struct SettingsView: View {
-    // Notifications
     @AppStorage("peep.notif.push")          private var pushAlerts: Bool = true
     @AppStorage("peep.notif.criticalOnly")  private var criticalOnly: Bool = false
     @State private var quietStart: Date = Calendar.current.date(bySettingHour: 22, minute: 0, second: 0, of: Date()) ?? Date()
     @State private var quietEnd:   Date = Calendar.current.date(bySettingHour: 7,  minute: 0, second: 0, of: Date()) ?? Date()
 
-    // Detection
     @AppStorage("peep.detect.loiterThreshold") private var loiterThreshold: Double = 6.0
     @AppStorage("peep.detect.fireOnce")        private var fireOnce: Bool = true
     @AppStorage("peep.detect.requireMovement") private var requireMovement: Bool = true
 
-    // Animals
     @State private var animals: [AnimalToggle] = [
-        AnimalToggle(name: "Dog",  emoji: "🐕", on: true),
-        AnimalToggle(name: "Cat",  emoji: "🐈", on: true),
-        AnimalToggle(name: "Bird", emoji: "🐦", on: false),
-        AnimalToggle(name: "Bear", emoji: "🐻", on: true)
+        AnimalToggle(name: "Dog", on: true),
+        AnimalToggle(name: "Cat", on: true),
+        AnimalToggle(name: "Bird", on: false),
+        AnimalToggle(name: "Bear", on: true)
     ]
 
-    // Auto-actions
-    @AppStorage("peep.auto.refundOnTheft")     private var refundOnTheft: Bool = true
-    @AppStorage("peep.auto.claimOnMissing")    private var claimOnMissing: Bool = true
-    @AppStorage("peep.auto.notifyOnMissing")   private var notifyOnMissing: Bool = true
+    @AppStorage("peep.auto.refundOnTheft")   private var refundOnTheft: Bool = true
+    @AppStorage("peep.auto.claimOnMissing")  private var claimOnMissing: Bool = true
+    @AppStorage("peep.auto.notifyOnMissing") private var notifyOnMissing: Bool = true
 
     var body: some View {
         NavigationStack {
             Form {
-                Section("Notifications") {
+                Section {
                     Toggle("Push alerts", isOn: $pushAlerts)
                     Toggle("Critical only", isOn: $criticalOnly)
                     DatePicker("Quiet hours start", selection: $quietStart, displayedComponents: .hourAndMinute)
                     DatePicker("Quiet hours end",   selection: $quietEnd,   displayedComponents: .hourAndMinute)
+                } header: {
+                    Text("Notifications")
                 }
 
-                Section("Detection") {
+                Section {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Text("Loitering threshold")
                             Spacer()
                             Text(String(format: "%.1fs", loiterThreshold))
-                                .font(.system(.subheadline, design: .monospaced))
-                                .foregroundStyle(.secondary)
+                                .font(.system(size: 14, design: .monospaced))
+                                .foregroundStyle(Color.peepTextSec)
                         }
                         Slider(value: $loiterThreshold, in: 1...15, step: 0.5)
-                            .tint(.peepAccent)
+                            .tint(Color.peepAccent)
                     }
                     Toggle("Fire once per session", isOn: $fireOnce)
                     Toggle("Require movement", isOn: $requireMovement)
+                } header: {
+                    Text("Detection")
                 }
 
-                Section("Animals") {
+                Section {
                     ForEach($animals) { $animal in
-                        Toggle(isOn: $animal.on) {
-                            HStack(spacing: 10) {
-                                Text(animal.emoji)
-                                Text(animal.name)
-                            }
-                        }
+                        Toggle(animal.name, isOn: $animal.on)
                     }
+                } header: {
+                    Text("Animals")
                 }
 
-                Section("Auto-actions") {
+                Section {
                     Toggle("Auto-file refund on theft", isOn: $refundOnTheft)
                     Toggle("Auto-file claim on missing delivery", isOn: $claimOnMissing)
                     Toggle("Notify when expected package doesn't arrive", isOn: $notifyOnMissing)
+                } header: {
+                    Text("Auto-actions")
                 }
 
-                Section("Integrations") {
-                    IntegrationRow(
-                        icon: "cart.fill",
-                        title: "Amazon",
-                        status: "Connected",
-                        statusColor: .peepAccent
-                    )
-                    IntegrationRow(
-                        icon: "envelope.fill",
-                        title: "Gmail",
-                        status: "Connect",
-                        statusColor: .accentColor
-                    )
-                    IntegrationRow(
-                        icon: "shield.lefthalf.filled",
-                        title: "Police",
-                        status: "Coming soon",
-                        statusColor: .secondary
-                    )
+                Section {
+                    IntegrationRow(title: "Amazon",  status: "Connected",   statusColor: Color.peepAccent)
+                    IntegrationRow(title: "Gmail",   status: "Connect",     statusColor: Color.peepAccent)
+                    IntegrationRow(title: "Police",  status: "Coming soon", statusColor: Color.peepTextSec)
+                } header: {
+                    Text("Integrations")
                 }
 
                 Section {
@@ -94,11 +83,14 @@ struct SettingsView: View {
                         Text("Version")
                         Spacer()
                         Text("0.1.0")
-                            .font(.system(.subheadline, design: .monospaced))
-                            .foregroundStyle(.secondary)
+                            .font(.system(size: 14, design: .monospaced))
+                            .foregroundStyle(Color.peepTextSec)
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Color.peepBg)
+            .tint(Color.peepAccent)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
         }
@@ -108,27 +100,20 @@ struct SettingsView: View {
 private struct AnimalToggle: Identifiable {
     let id = UUID()
     let name: String
-    let emoji: String
     var on: Bool
 }
 
 private struct IntegrationRow: View {
-    let icon: String
     let title: String
     let status: String
     let statusColor: Color
 
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.body.weight(.semibold))
-                .frame(width: 28, height: 28)
-                .background(Color.peepAccent.opacity(0.15), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-                .foregroundStyle(Color.peepAccent)
+        HStack {
             Text(title)
             Spacer()
             Text(status)
-                .font(.subheadline.weight(.medium))
+                .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(statusColor)
         }
     }
@@ -136,5 +121,4 @@ private struct IntegrationRow: View {
 
 #Preview {
     SettingsView()
-        .preferredColorScheme(.dark)
 }

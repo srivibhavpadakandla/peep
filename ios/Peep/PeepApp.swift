@@ -8,7 +8,7 @@ struct PeepApp: App {
         WindowGroup {
             RootView()
                 .environmentObject(appState)
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(.light)
                 .tint(.peepAccent)
         }
     }

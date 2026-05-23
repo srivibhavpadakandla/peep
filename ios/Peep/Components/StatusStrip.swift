@@ -1,51 +1,39 @@
 import SwiftUI
 
+/// Calm one-line status: a small sage dot + plain-English sentence.
+/// No card background — the strip floats in the page padding so it reads as
+/// status, not as a UI element.
 struct StatusStrip: View {
     @EnvironmentObject private var appState: AppState
 
     private var message: String {
         let pending = appState.pendingDeliveries.count
-        if pending == 0 {
-            return "All quiet."
-        } else if pending == 1 {
-            return "Watching · 1 delivery expected today"
-        } else {
-            return "Watching · \(pending) deliveries expected today"
-        }
+        if pending == 0 { return "All quiet." }
+        if pending == 1 { return "Watching · 1 delivery expected today" }
+        return "Watching · \(pending) deliveries expected today"
     }
 
     var body: some View {
         HStack(spacing: 10) {
             Circle()
                 .fill(Color.peepAccent)
-                .frame(width: 6, height: 6)
-                .overlay(
-                    Circle()
-                        .stroke(Color.peepAccent.opacity(0.4), lineWidth: 4)
-                        .scaleEffect(1.6)
-                )
+                .frame(width: 7, height: 7)
             Text(message)
-                .font(.subheadline)
-                .foregroundStyle(.primary)
+                .font(.system(size: 15))
+                .foregroundStyle(Color.peepText)
             Spacer()
             if appState.alertsMuted {
-                Label("Muted", systemImage: "bell.slash.fill")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Text("Muted")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.peepTextSec)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
-        )
     }
 }
 
 #Preview {
     StatusStrip()
         .environmentObject(AppState())
-        .padding()
-        .preferredColorScheme(.dark)
+        .padding(20)
+        .background(Color.peepBg)
 }

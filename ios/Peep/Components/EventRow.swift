@@ -1,5 +1,8 @@
 import SwiftUI
 
+/// Minimal event row, per the redesign: title + time/confidence + text-only
+/// severity. No icon tile, no chevron, no row dots. The whole row is the tap
+/// target; the parent NavigationLink does the visual indication.
 struct EventRow: View {
     let event: Event
 
@@ -10,67 +13,38 @@ struct EventRow: View {
     }()
 
     var body: some View {
-        HStack(spacing: 14) {
-            // Emoji icon tile — playful, only inside feed rows.
-            ZStack {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(event.severity.color.opacity(0.14))
-                Text(event.eventType.emoji)
-                    .font(.system(size: 22))
-            }
-            .frame(width: 44, height: 44)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(event.severity.color.opacity(0.25), lineWidth: 0.5)
-            )
-
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(event.eventType.label)
-                    .font(.body.weight(.medium))
-                    .foregroundStyle(.primary)
+                    .font(.system(size: 15))
+                    .foregroundStyle(Color.peepText)
                     .lineLimit(1)
-
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text(Self.timeFormatter.string(from: event.timestamp))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color.peepTextSec)
                     Text("·")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(String(format: "conf %.2f", event.confidence))
-                        .font(.system(.caption, design: .monospaced))
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color.peepTextTer)
+                    Text("\(Int((event.confidence * 100).rounded()))% confidence")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color.peepTextSec)
                 }
             }
-
             Spacer(minLength: 8)
-
-            VStack(alignment: .trailing, spacing: 6) {
-                SeverityBadge(severity: event.severity)
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tertiary)
-            }
+            SeverityBadge(severity: event.severity)
         }
-        .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
-        )
         .contentShape(Rectangle())
     }
 }
 
 #Preview {
-    VStack(spacing: 10) {
-        EventRow(event: Event(eventType: .packageTaken,
-                              timestamp: Date(),
-                              confidence: 0.94))
-        EventRow(event: Event(eventType: .animalDetected,
-                              timestamp: Date(),
-                              confidence: 0.78))
+    VStack(spacing: 0) {
+        EventRow(event: Event(eventType: .packageTaken, timestamp: Date(), confidence: 0.94))
+        Divider().background(Color.peepSep)
+        EventRow(event: Event(eventType: .animalDetected, timestamp: Date(), confidence: 0.78))
     }
-    .padding()
-    .preferredColorScheme(.dark)
+    .padding(.horizontal, 20)
+    .background(Color.peepBg)
 }

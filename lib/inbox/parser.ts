@@ -4,7 +4,7 @@ import type { ExpectedDelivery, InboxEmail } from "./types";
  * Parse an inbox into the set of deliveries expected on `today`.
  *
  * Default implementation is a pure regex extractor — fast, deterministic,
- * and tunable without an API key. A swap-in Claude-based parser can replace
+ * and tunable without an API key. A swap-in LLM-based parser can replace
  * this when the inbox shape is less predictable.
  */
 export function parseExpectedDeliveries(emails: InboxEmail[], today: string): ExpectedDelivery[] {

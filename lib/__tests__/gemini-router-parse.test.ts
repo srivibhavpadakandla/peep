@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseDecision } from "../orchestration/claude-router";
+import { parseDecision } from "../orchestration/gemini-router";
 
 describe("parseDecision", () => {
   it("parses raw JSON", () => {

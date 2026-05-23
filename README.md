@@ -4,7 +4,7 @@ A live camera that watches for a real-world event, decides what to do about it,
 and carries out the task on a website end-to-end — no human in the loop.
 
 **Demo flow:** a `backpack` (stand-in package) is taken from in front of the camera →
-the vision agent emits a `package_taken` event → Claude routes it to the
+the vision agent emits a `package_taken` event → Gemini routes it to the
 `amazon_refund_claim` workflow → the browser agent drives a simulated Amazon
 checkout and returns a receipt.
 
@@ -15,7 +15,7 @@ checkout and returns a receipt.
 ```
   ┌──────────────┐    CameraEvent     ┌────────────────┐  Decision   ┌──────────────────┐
   │ Vision Agent │ ─────────────────▶ │ Orchestration  │ ──────────▶ │ Browser Agent     │
-  │  (browser)   │  Zustand store +   │  (Claude API)  │  fetch /api │  (Playwright)     │
+  │  (browser)   │  Zustand store +   │  (Gemini API)  │  fetch /api │  (Playwright)     │
   │              │  fetch /api        │                │             │                   │
   └──────────────┘                    └────────────────┘             └──────────────────┘
                                                                               │
@@ -50,7 +50,7 @@ interface CameraEvent {
 |---|---|
 | **Next.js + Zustand on the client, HTTP for Playwright** | Vision and orchestration can be in-process for a 12-hour build; Playwright *must* run in Node, so that boundary already needs HTTP — and HTTP routes give us a real integration test surface for the contract. |
 | **COCO-SSD as the default detector** | Hackathon-grade reliability. The `Detector` interface is swappable — replace with YOLOv8 ONNX once you've sourced a model file. |
-| **Mock orchestration router when no API key** | The full pipeline runs offline. Set `ANTHROPIC_API_KEY` to flip to Claude. |
+| **Mock orchestration router when no API key** | The full pipeline runs offline. Set `GEMINI_API_KEY` to flip to Gemini. |
 | **Blob URL `evidence_clip`** | MediaRecorder gives a rolling buffer that finalizes in-place — no server round-trip, no disk writes, no cleanup. |
 
 ---
@@ -84,8 +84,8 @@ lib/
     clip-recorder.ts             # MediaRecorder rolling buffer
   orchestration/
     router.ts                    # OrchestrationRouter interface + MockRouter
-    claude-router.ts             # ClaudeRouter (Sonnet 4.6)
-    index.ts                     # picks Claude vs mock from env
+    gemini-router.ts             # GeminiRouter (2.0 Flash)
+    index.ts                     # picks Gemini vs mock from env
   browser-agent/
     types.ts                     # request / result types
     refund.ts                    # the amazon_refund_claim workflow
@@ -100,7 +100,7 @@ lib/
 ```bash
 npm install
 npx playwright install chromium      # only needed once; for the browser agent
-cp .env.example .env.local           # optional — add ANTHROPIC_API_KEY for real Claude routing
+cp .env.example .env.local           # optional — add GEMINI_API_KEY for real Gemini routing
 npm run dev
 ```
 
@@ -121,14 +121,14 @@ out of frame. You should see:
 BROWSER_AGENT_HEADED=0 npm run dev
 ```
 
-### Run with a real Claude API key
+### Run with a real Gemini API key
 
 ```bash
-echo 'ANTHROPIC_API_KEY=sk-ant-...' >> .env.local
+echo 'GEMINI_API_KEY=AI...' >> .env.local
 npm run dev
 ```
 
-The orchestration panel will show `via claude` instead of `via mock`.
+The orchestration panel will show `via gemini` instead of `via mock`.
 
 ---
 
@@ -145,7 +145,7 @@ isolation against a mock.
 ### Orchestration agent
 - **Input:** HTTP `POST /api/orchestrate` with a `CameraEvent` JSON body.
 - **Output:** `{ workflow, reason, params, _mode }` JSON. `workflow` is one of
-  `amazon_refund_claim | log_incident | no_action`. `_mode` is `"claude"` or
+  `amazon_refund_claim | log_incident | no_action`. `_mode` is `"gemini"` or
   `"mock"` so you can tell what answered.
 
 ### Browser agent
@@ -179,7 +179,7 @@ Covers what matters at the contract boundary:
 - `event-detector.test.ts` — state machine: stable→absent emission, cooldown,
   flicker suppression, minScore gating, wrong-label gating.
 - `mock-router.test.ts` — deterministic routing of every event type.
-- `claude-router-parse.test.ts` — parser tolerates markdown fences, rejects
+- `gemini-router-parse.test.ts` — parser tolerates markdown fences, rejects
   unknown workflows / non-JSON / missing fields.
 
 The vision-agent React component and the Playwright runner are *integration*
@@ -191,7 +191,7 @@ surfaces — exercise them via `npm run dev` rather than unit tests.
 
 - **New event type:** add it to `EventType` in `lib/contract.ts`, teach
   `EventDetector` to emit it, and add a case to `MockRouter` (and update the
-  Claude system prompt in `claude-router.ts`).
+  Gemini system prompt in `gemini-router.ts`).
 - **New workflow:** add a handler in `lib/browser-agent/`, dispatch it from
   `lib/browser-agent/index.ts`, and add it to the `Workflow` union in
   `lib/orchestration/router.ts`. The orchestration agent will start routing to

@@ -14,7 +14,7 @@ export interface OrchestrationRouter {
 }
 
 /**
- * Deterministic fallback used when ANTHROPIC_API_KEY is absent. Lets the demo
+ * Deterministic fallback used when GEMINI_API_KEY is absent. Lets the demo
  * run offline and keeps the contract testable.
  */
 export class MockRouter implements OrchestrationRouter {

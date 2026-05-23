@@ -101,7 +101,7 @@ export default function DemoCockpit() {
       setDecision(decision);
 
       // Track real pipeline activity. Token counts come from the API only when
-      // a real Claude call was made; otherwise we just bump the call counter
+      // a real Gemini call was made; otherwise we just bump the call counter
       // and leave token/cost at the actual measured values (0 for the mock).
       const usageDelta = (decision as { usage?: { input_tokens: number; output_tokens: number } }).usage;
       setUsage((prev) => ({
@@ -112,7 +112,7 @@ export default function DemoCockpit() {
         costUSD:
           prev.costUSD +
           (usageDelta ? (usageDelta.input_tokens * 3 + usageDelta.output_tokens * 15) / 1_000_000 : 0),
-        model: decision._mode === "claude" ? "Claude (Sonnet 4.6)" : "rule-based router",
+        model: decision._mode === "gemini" ? "Gemini 2.0 Flash" : "rule-based router",
         callsCount: prev.callsCount + 1,
       }));
 
@@ -152,7 +152,7 @@ export default function DemoCockpit() {
 
   // Extract individual orchestration calls from logs for the telemetry table.
   // Token counts and cost are shown ONLY for events we have real measurements
-  // for (i.e. a real Claude call was made). Otherwise we leave them blank.
+  // for (i.e. a real Gemini call was made). Otherwise we leave them blank.
   const orchestrationCalls = log
     .filter((l) => l.source === "orchestration")
     .map((l, idx) => ({
@@ -610,13 +610,13 @@ export default function DemoCockpit() {
                 <div className="text-[#E6E6E0] font-mono text-xs leading-relaxed">
                   <div className="text-emerald-400 font-bold">{usage.model}</div>
                   <div className="text-[#8C8C85] text-[10px] mt-1">
-                    {orchestrationMode === "claude"
-                      ? "ANTHROPIC_API_KEY detected → real Claude calls"
+                    {orchestrationMode === "gemini"
+                      ? "GEMINI_API_KEY detected → real Gemini calls"
                       : "no API key → using deterministic mock router"}
                   </div>
                 </div>
                 <div className="text-[8px] font-mono text-[#8C8C85]/60 uppercase">
-                  {orchestrationMode === "claude" ? "Sonnet 4.6 · $3/MTok in · $15/MTok out" : "free · no API calls"}
+                  {orchestrationMode === "gemini" ? "Gemini 2.0 Flash · free tier · ~$0.075/MTok" : "free · no API calls"}
                 </div>
               </div>
 
@@ -627,7 +627,7 @@ export default function DemoCockpit() {
               <header className="mb-4 border-b border-[#2C2C2A]/60 pb-2 flex items-center justify-between">
                 <h3 className="text-xs font-mono font-bold tracking-wider text-[#8C8C85] uppercase">Recent orchestration calls</h3>
                 <span className="text-[9px] text-neutral-500 font-mono">
-                  Token counts only populate when a real Claude call is made (ANTHROPIC_API_KEY set).
+                  Token counts only populate when a real Gemini call is made (GEMINI_API_KEY set).
                 </span>
               </header>
 
@@ -729,7 +729,7 @@ function CurrentActivityCard({
       {decision && (
         <div className="border-l-2 border-sky-700/60 pl-3 py-1">
           <div className="text-[10px] uppercase tracking-wide text-neutral-500 font-mono">
-            Peep decided {orchestrationMode === "claude" ? "(via Claude)" : orchestrationMode === "mock" ? "(via rules)" : ""}
+            Peep decided {orchestrationMode === "gemini" ? "(via Gemini)" : orchestrationMode === "mock" ? "(via rules)" : ""}
           </div>
           <div className="text-xs text-neutral-200">{decisionSentence(decision)}</div>
         </div>
@@ -758,7 +758,7 @@ function PipelineGraph({ status }: { status: string }) {
   const steps = [
     { id: "watching", label: "1. WATCHING" },
     { id: "event_detected", label: "2. EVENT TRIGGER" },
-    { id: "orchestrating", label: "3. CLAUDE ORCHESTRATION" },
+    { id: "orchestrating", label: "3. GEMINI ORCHESTRATION" },
     { id: "acting", label: "4. BROWSER WORKFLOW" },
     { id: "done", label: "5. COMPLETE" },
   ];

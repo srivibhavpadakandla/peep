@@ -35,16 +35,23 @@ Reply with a SINGLE JSON object — no prose, no markdown fences — matching:
 Cite concrete, time-stamped observations. If nothing fraudulent is present, return
 verdict "clean", a low risk_score, and an empty or single informational finding.`;
 
+/** Optional uploaded-file payload: in-memory video bytes + their mime type. */
+export interface UploadedClip {
+  buffer: Buffer;
+  mimeType: string;
+}
+
 /**
  * Analyze a clip for fraud. Uses Gemini's multimodal video understanding when
- * GEMINI_API_KEY is set (it can read a public YouTube URL directly); otherwise
- * falls back to a deterministic heuristic so the feature works fully offline.
+ * GEMINI_API_KEY is set (it can read a public YouTube URL via fileData, or an
+ * uploaded file via inlineData); otherwise falls back to a deterministic
+ * heuristic so the feature works fully offline.
  */
-export async function analyzeForFraud(meta: VideoMeta): Promise<FraudAnalysis> {
+export async function analyzeForFraud(meta: VideoMeta, upload?: UploadedClip): Promise<FraudAnalysis> {
   const key = process.env.GEMINI_API_KEY;
   if (key && key.trim().length > 0) {
     try {
-      const g = await analyzeWithGemini(key, meta);
+      const g = await analyzeWithGemini(key, meta, upload);
       if (g) return g;
     } catch {
       // Network/model error → fall through to the heuristic so the UI still responds.
@@ -53,7 +60,11 @@ export async function analyzeForFraud(meta: VideoMeta): Promise<FraudAnalysis> {
   return heuristicAnalysis(meta);
 }
 
-async function analyzeWithGemini(apiKey: string, meta: VideoMeta): Promise<FraudAnalysis | null> {
+async function analyzeWithGemini(
+  apiKey: string,
+  meta: VideoMeta,
+  upload?: UploadedClip,
+): Promise<FraudAnalysis | null> {
   const client = new GoogleGenerativeAI(apiKey);
   const model = client.getGenerativeModel({
     model: MODEL,
@@ -62,8 +73,14 @@ async function analyzeWithGemini(apiKey: string, meta: VideoMeta): Promise<Fraud
   });
 
   const lengthHint = meta.durationSec ? `${meta.durationSec}-second` : "short";
+  // Uploads go in as inlineData (base64). YouTube URLs use fileData — Gemini
+  // resolves the public URL itself.
+  const videoPart = upload
+    ? { inlineData: { data: upload.buffer.toString("base64"), mimeType: upload.mimeType } }
+    : { fileData: { fileUri: meta.url, mimeType: "video/*" } };
+
   const result = await model.generateContent([
-    { fileData: { fileUri: meta.url, mimeType: "video/*" } },
+    videoPart,
     {
       text: `Analyze this ${lengthHint} clip titled "${meta.title}" for fraudulent or criminal activity. Return the JSON object described in your instructions.`,
     },

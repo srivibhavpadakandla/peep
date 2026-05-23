@@ -13,28 +13,51 @@ const LOADING_STAGES = [
   "Scoring risk and assembling findings…",
 ];
 
+type InputMode = "url" | "upload";
+
 /**
- * Standalone side-panel section: paste a YouTube link (<3 min) and the analyzer
- * flags fraudulent / suspicious activity. Self-contained — talks only to
- * /api/fraud-scan and mirrors a one-line result into the activity log.
+ * Side-panel section: paste a YouTube link (<3 min) OR upload a video file
+ * (<18MB) and the analyzer flags fraudulent / suspicious activity. Self-contained
+ * — talks only to /api/fraud-scan and mirrors a one-line result into the log.
  */
 export default function FraudScanPanel() {
   const appendLog = useAgentStore((s) => s.appendLog);
+  const [mode, setMode] = useState<InputMode>("url");
   const [url, setUrl] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
   const [loading, setLoading] = useState(false);
   const [stage, setStage] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<FraudReport | null>(null);
   const stageTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     return () => {
       if (stageTimer.current) clearInterval(stageTimer.current);
+      if (filePreviewUrl) URL.revokeObjectURL(filePreviewUrl);
     };
-  }, []);
+  }, [filePreviewUrl]);
+
+  const onPickFile = (f: File | null) => {
+    if (filePreviewUrl) URL.revokeObjectURL(filePreviewUrl);
+    if (!f) {
+      setFile(null);
+      setFilePreviewUrl(null);
+      return;
+    }
+    setFile(f);
+    setFilePreviewUrl(URL.createObjectURL(f));
+    setError(null);
+  };
 
   async function scan() {
-    if (!url.trim() || loading) return;
+    if (loading) return;
+    if (mode === "url" && !url.trim()) return;
+    if (mode === "upload" && !file) return;
+
     setLoading(true);
     setError(null);
     setReport(null);
@@ -44,11 +67,18 @@ export default function FraudScanPanel() {
     }, 900);
 
     try {
-      const res = await fetch("/api/fraud-scan", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ url }),
-      });
+      let res: Response;
+      if (mode === "url") {
+        res = await fetch("/api/fraud-scan", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ url }),
+        });
+      } else {
+        const form = new FormData();
+        form.append("file", file as File);
+        res = await fetch("/api/fraud-scan", { method: "POST", body: form });
+      }
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? `scan failed (${res.status})`);
       const r = data as FraudReport;
@@ -66,6 +96,13 @@ export default function FraudScanPanel() {
     }
   }
 
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragOver(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f) onPickFile(f);
+  };
+
   return (
     <div className="space-y-6">
       <header className="border border-[#2C2C2A] bg-[#171716] p-4 rounded-none">
@@ -76,36 +113,125 @@ export default function FraudScanPanel() {
           </h1>
         </div>
         <p className="text-[11px] text-neutral-500 font-mono mt-1">
-          Paste a YouTube clip under 3 minutes. The analyzer reviews it for fraudulent activity —
+          Paste a YouTube clip or upload a video (under 3 min / 18 MB). The analyzer reviews it for
           porch theft, staged claims, card tampering, return fraud — and reports timestamped findings.
         </p>
       </header>
 
       {/* Input */}
       <div className="border border-[#2C2C2A] bg-[#171716] p-4 rounded-none space-y-3">
-        <label className="text-[10px] font-semibold text-[#8C8C85] tracking-wider uppercase font-mono">
-          YouTube URL
-        </label>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <input
-            type="text"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && scan()}
-            placeholder="https://www.youtube.com/watch?v=…  or  youtu.be/…"
-            className="flex-1 bg-[#0A0A0A] border border-[#2C2C2A] text-[#E6E6E0] rounded-none px-3 py-2 text-xs font-mono focus:outline-none focus:border-rose-500/50 transition-colors"
-          />
+        {/* Mode toggle */}
+        <div className="flex gap-1 text-[10px] font-mono tracking-wider uppercase">
           <button
-            onClick={scan}
-            disabled={loading || !url.trim()}
-            className="px-4 py-2 text-xs font-mono tracking-wider border border-rose-700/60 text-rose-300 bg-rose-950/20 hover:bg-rose-950/40 disabled:opacity-40 disabled:cursor-not-allowed rounded-none transition-all"
+            onClick={() => setMode("url")}
+            className={`px-3 py-1.5 border ${
+              mode === "url"
+                ? "border-rose-700/60 text-rose-300 bg-rose-950/20"
+                : "border-[#2C2C2A] text-neutral-500 hover:text-neutral-300"
+            }`}
           >
-            {loading ? "SCANNING…" : "ANALYZE"}
+            YouTube URL
+          </button>
+          <button
+            onClick={() => setMode("upload")}
+            className={`px-3 py-1.5 border ${
+              mode === "upload"
+                ? "border-rose-700/60 text-rose-300 bg-rose-950/20"
+                : "border-[#2C2C2A] text-neutral-500 hover:text-neutral-300"
+            }`}
+          >
+            Upload File
           </button>
         </div>
-        <p className="text-[10px] text-neutral-600 font-mono">
-          Clips over 3 minutes are rejected. Public videos only.
-        </p>
+
+        {mode === "url" && (
+          <>
+            <label className="text-[10px] font-semibold text-[#8C8C85] tracking-wider uppercase font-mono">
+              YouTube URL
+            </label>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && scan()}
+                placeholder="https://www.youtube.com/watch?v=…  or  youtu.be/…"
+                className="flex-1 bg-[#0A0A0A] border border-[#2C2C2A] text-[#E6E6E0] rounded-none px-3 py-2 text-xs font-mono focus:outline-none focus:border-rose-500/50 transition-colors"
+              />
+              <button
+                onClick={scan}
+                disabled={loading || !url.trim()}
+                className="px-4 py-2 text-xs font-mono tracking-wider border border-rose-700/60 text-rose-300 bg-rose-950/20 hover:bg-rose-950/40 disabled:opacity-40 disabled:cursor-not-allowed rounded-none transition-all"
+              >
+                {loading ? "SCANNING…" : "ANALYZE"}
+              </button>
+            </div>
+            <p className="text-[10px] text-neutral-600 font-mono">
+              Clips over 3 minutes are rejected. Public videos only.
+            </p>
+          </>
+        )}
+
+        {mode === "upload" && (
+          <>
+            <label className="text-[10px] font-semibold text-[#8C8C85] tracking-wider uppercase font-mono">
+              Video file
+            </label>
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOver(true);
+              }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={`border border-dashed p-6 cursor-pointer transition-colors ${
+                dragOver
+                  ? "border-rose-500/60 bg-rose-950/20"
+                  : "border-[#2C2C2A] bg-[#0A0A0A] hover:border-rose-700/40"
+              }`}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="video/*"
+                className="hidden"
+                onChange={(e) => onPickFile(e.target.files?.[0] ?? null)}
+              />
+              {file ? (
+                <div className="space-y-1 font-mono text-xs">
+                  <div className="text-rose-300 truncate">{file.name}</div>
+                  <div className="text-[10px] text-neutral-500">
+                    {file.type || "unknown type"} · {(file.size / (1024 * 1024)).toFixed(1)} MB
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onPickFile(null);
+                    }}
+                    className="text-[10px] text-neutral-500 hover:text-rose-300 underline mt-1"
+                  >
+                    Choose a different file
+                  </button>
+                </div>
+              ) : (
+                <div className="text-center font-mono text-xs text-neutral-500 space-y-1">
+                  <div>Drop a video here or click to browse</div>
+                  <div className="text-[10px] text-neutral-600">.mp4, .mov, .webm — under 18MB, under 3 min</div>
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end">
+              <button
+                onClick={scan}
+                disabled={loading || !file}
+                className="px-4 py-2 text-xs font-mono tracking-wider border border-rose-700/60 text-rose-300 bg-rose-950/20 hover:bg-rose-950/40 disabled:opacity-40 disabled:cursor-not-allowed rounded-none transition-all"
+              >
+                {loading ? "SCANNING…" : "ANALYZE"}
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {loading && (
@@ -131,30 +257,39 @@ export default function FraudScanPanel() {
         </div>
       )}
 
-      {report && !loading && <Report report={report} />}
+      {report && !loading && <Report report={report} localPreviewUrl={mode === "upload" ? filePreviewUrl : null} />}
     </div>
   );
 }
 
-function Report({ report }: { report: FraudReport }) {
+function Report({ report, localPreviewUrl }: { report: FraudReport; localPreviewUrl: string | null }) {
+  const isUpload = report.video.id.startsWith("upload-");
   return (
     <div className="space-y-6 animate-fadeIn">
       {/* Player + verdict */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="border border-[#2C2C2A] bg-black rounded-none overflow-hidden">
           <div className="aspect-video w-full">
-            <iframe
-              src={embedUrl(report.video.id)}
-              title={report.video.title}
-              className="w-full h-full"
-              allow="accelerometer; encrypted-media; picture-in-picture"
-              allowFullScreen
-            />
+            {isUpload && localPreviewUrl ? (
+              <video src={localPreviewUrl} controls className="w-full h-full bg-black" />
+            ) : isUpload ? (
+              <div className="w-full h-full flex items-center justify-center text-neutral-600 font-mono text-xs">
+                preview unavailable
+              </div>
+            ) : (
+              <iframe
+                src={embedUrl(report.video.id)}
+                title={report.video.title}
+                className="w-full h-full"
+                allow="accelerometer; encrypted-media; picture-in-picture"
+                allowFullScreen
+              />
+            )}
           </div>
           <div className="p-3 border-t border-[#2C2C2A]">
             <p className="text-xs text-[#E6E6E0] font-medium line-clamp-2">{report.video.title}</p>
             <p className="text-[10px] text-neutral-500 font-mono mt-1">
-              {report.video.author ?? "unknown channel"}
+              {isUpload ? "uploaded file" : report.video.author ?? "unknown channel"}
               {report.video.durationSec !== null && ` · ${fmtDur(report.video.durationSec)}`}
               {` · ${report.framesSampled} frames sampled`}
             </p>

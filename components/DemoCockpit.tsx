@@ -7,6 +7,7 @@ import VisionAgent from "./VisionAgent";
 import InboxPanel from "./InboxPanel";
 import SecurityAlertsPanel, { type CrimeConfig, type AnimalConfig } from "./SecurityAlertsPanel";
 import SettingsPanel from "./SettingsPanel";
+import AgentPipelinePanel from "./AgentPipelinePanel";
 
 export default function DemoCockpit() {
   const lastEvent = useAgentStore((s) => s.lastEvent);
@@ -346,14 +347,6 @@ export default function DemoCockpit() {
 
                 {/* Srivibhav's Inbox Panel (Fully Integrated!) */}
                 <InboxPanel />
-
-                {/* Srivibhav's Adjustable Security Alerts Knobs Panel (Fully Integrated!) */}
-                <SecurityAlertsPanel
-                  config={crimeConfig}
-                  onChange={setCrimeConfig}
-                  animalConfig={animalConfig}
-                  onAnimalChange={setAnimalConfig}
-                />
               </div>
 
               {/* Right Column: Execution Workbench Output Cards */}
@@ -420,6 +413,9 @@ export default function DemoCockpit() {
                 </Panel>
               </div>
             </div>
+
+            {/* Agentic three-stage pipeline (Orchestrator → Reasoning → Executor → Gmail) */}
+            <AgentPipelinePanel loiteringThresholdMs={crimeConfig.dwellMs} />
           </div>
         )}
 
@@ -626,14 +622,20 @@ export default function DemoCockpit() {
           </div>
         )}
 
-        {/* Tab 4: SETTINGS (integrations, inbox source) */}
+        {/* Tab 4: SETTINGS (integrations, inbox source, security alerts) */}
         {activeTab === "settings" && (
           <div className="space-y-6 animate-fadeIn">
             <div className="bg-[#171716] border border-[#2C2C2A] p-4 rounded-none">
               <h2 className="text-xs font-mono font-bold tracking-wider text-[#8C8C85] uppercase">Settings</h2>
-              <p className="text-[11px] text-[#8C8C85] font-mono mt-1">Configure inbox source and integrations.</p>
+              <p className="text-[11px] text-[#8C8C85] font-mono mt-1">Inbox source, integrations, and security alert thresholds.</p>
             </div>
             <SettingsPanel />
+            <SecurityAlertsPanel
+              config={crimeConfig}
+              onChange={setCrimeConfig}
+              animalConfig={animalConfig}
+              onAnimalChange={setAnimalConfig}
+            />
           </div>
         )}
 

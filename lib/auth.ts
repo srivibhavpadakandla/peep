@@ -2,6 +2,7 @@ import type { NextAuthOptions } from "next-auth";
 import Google from "next-auth/providers/google";
 
 export const GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
+export const GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -10,7 +11,7 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
       authorization: {
         params: {
-          scope: `openid email profile ${GMAIL_SCOPE}`,
+          scope: `openid email profile ${GMAIL_SCOPE} ${GMAIL_SEND_SCOPE}`,
           access_type: "offline",
           prompt: "consent",
         },

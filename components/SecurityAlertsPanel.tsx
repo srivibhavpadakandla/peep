@@ -110,12 +110,12 @@ export default function SecurityAlertsPanel({ config, onChange, animalConfig, on
               Notify after loitering for: <span className="text-neutral-200 font-medium">{formatDwell(config.dwellMs)}</span>
             </span>
             <input
-              type="range" min={1000} max={120000} step={1000}
+              type="range" min={1000} max={1800000} step={1000}
               value={config.dwellMs}
               onChange={(e) => onChange({ ...config, dwellMs: Number(e.target.value) })}
             />
             <span className="text-[10px] text-neutral-500">
-              Nothing is sent until a person has been in frame this long. Range: 1s – 2 min.
+              Nothing is sent until a person has been in frame this long. Range: 1s – 30 min.
             </span>
           </label>
         </fieldset>

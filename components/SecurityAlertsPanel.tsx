@@ -106,12 +106,17 @@ export default function SecurityAlertsPanel({ config, onChange, animalConfig, on
         <fieldset className="col-span-2 border border-neutral-800 rounded p-2 space-y-1.5 disabled:opacity-50" disabled={!config.enabled}>
           <legend className="px-1 text-[10px] uppercase tracking-wide text-neutral-500">Detection</legend>
           <label className="flex flex-col gap-0.5">
-            <span className="text-neutral-400">Loitering threshold: {(config.dwellMs / 1000).toFixed(1)}s</span>
+            <span className="text-neutral-400">
+              Notify after loitering for: <span className="text-neutral-200 font-medium">{formatDwell(config.dwellMs)}</span>
+            </span>
             <input
-              type="range" min={1000} max={15000} step={500}
+              type="range" min={1000} max={120000} step={1000}
               value={config.dwellMs}
               onChange={(e) => onChange({ ...config, dwellMs: Number(e.target.value) })}
             />
+            <span className="text-[10px] text-neutral-500">
+              Nothing is sent until a person has been in frame this long. Range: 1s – 2 min.
+            </span>
           </label>
         </fieldset>
 
@@ -302,6 +307,14 @@ export default function SecurityAlertsPanel({ config, onChange, animalConfig, on
 function hourLabel(h: number): string {
   const hh = String(h).padStart(2, "0");
   return `${hh}:00`;
+}
+
+function formatDwell(ms: number): string {
+  const s = Math.round(ms / 1000);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  const rem = s % 60;
+  return rem === 0 ? `${m} min` : `${m} min ${rem}s`;
 }
 
 function currentlyQuiet(c: CrimeConfig): boolean {

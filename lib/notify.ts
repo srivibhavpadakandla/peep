@@ -21,7 +21,7 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
 
 export function notifyEvent(event: CameraEvent): void {
   const isTheft = event.event_type === "package_taken";
-  const fmt = `[cipher] ${event.event_type}  conf=${event.confidence.toFixed(2)}  at ${new Date(
+  const fmt = `[peep] ${event.event_type}  conf=${event.confidence.toFixed(2)}  at ${new Date(
     event.timestamp,
   ).toLocaleTimeString()}`;
 
@@ -38,7 +38,7 @@ export function notifyEvent(event: CameraEvent): void {
       "color:#6ee7b7;",
     );
   } else {
-    console.log("%c[cipher] " + event.event_type, "color:#94a3b8;", fmt);
+    console.log("%c[peep] " + event.event_type, "color:#94a3b8;", fmt);
   }
 
   if (typeof Notification !== "undefined" && Notification.permission === "granted") {

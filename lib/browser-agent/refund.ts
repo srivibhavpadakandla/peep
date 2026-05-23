@@ -20,7 +20,7 @@ export async function runAmazonRefundClaim(
     await page.goto(`${baseUrl}/login`, { waitUntil: "domcontentloaded" });
     step("nav:login", true, page.url());
 
-    await page.fill('input[name="email"]', "demo@cipher.test");
+    await page.fill('input[name="email"]', "demo@peep.test");
     await page.fill('input[name="password"]', "hackathon");
     await page.click('button[type="submit"]');
     await page.waitForURL(/\/orders$/, { timeout: 5000 });

@@ -5,7 +5,7 @@ import { useState } from "react";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("demo@cipher.test");
+  const [email, setEmail] = useState("demo@peep.test");
   const [password, setPassword] = useState("hackathon");
 
   const onSubmit = (e: React.FormEvent) => {

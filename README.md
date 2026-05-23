@@ -1,4 +1,4 @@
-# Cipher · Agentic Camera
+# Peep · Agentic Camera
 
 A live camera that watches for a real-world event, decides what to do about it,
 and carries out the task on a website end-to-end — no human in the loop.

@@ -41,5 +41,5 @@ class AlertStore {
 }
 
 // Module-level singleton — stable across HMR in dev.
-const g = globalThis as unknown as { __cipher_alerts?: AlertStore };
-export const alertStore: AlertStore = (g.__cipher_alerts ??= new AlertStore());
+const g = globalThis as unknown as { __peep_alerts?: AlertStore };
+export const alertStore: AlertStore = (g.__peep_alerts ??= new AlertStore());

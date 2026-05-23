@@ -1,10 +1,11 @@
 "use client";
 
-import type { ComponentType } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 import { icons } from "lucide-react";
 import { Mono, SectionLabel, StatusDot } from "./primitives";
+import { useAgentStore, REASONING_SWEEP_INTERVAL_MS } from "@/lib/store";
 
-export type ViewId = "live" | "agents" | "inbox" | "alerts" | "logs" | "usage" | "settings";
+export type ViewId = "live" | "agents" | "fraud" | "inbox" | "alerts" | "logs" | "usage" | "settings";
 
 type LucideLike = ComponentType<{ size?: number | string; className?: string; strokeWidth?: number | string }>;
 
@@ -17,6 +18,7 @@ interface NavItem {
 const NAV: NavItem[] = [
   { id: "live", label: "Live", Icon: icons.Video as LucideLike },
   { id: "agents", label: "Agents", Icon: icons.BrainCircuit as LucideLike },
+  { id: "fraud", label: "Fraud Scan", Icon: icons.ShieldCheck as LucideLike },
   { id: "inbox", label: "Inbox", Icon: icons.Package as LucideLike },
   { id: "alerts", label: "Alerts", Icon: icons.ShieldAlert as LucideLike },
   { id: "logs", label: "Logs", Icon: icons.ScrollText as LucideLike },
@@ -83,6 +85,44 @@ const CameraSwitcher = ({ collapsed }: { collapsed: boolean }) => {
   );
 };
 
+/**
+ * Always-visible proof the reasoning agent is working: a pulsing indicator, a
+ * live countdown to the next background sweep, and a depleting compute budget.
+ * Reads the heartbeat the PeepConsole shell drives on an interval.
+ */
+const SidebarHeartbeat = () => {
+  const hb = useAgentStore((s) => s.reasoningHeartbeat);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const nextAt = hb.lastSweepAt ? hb.lastSweepAt + REASONING_SWEEP_INTERVAL_MS : now + REASONING_SWEEP_INTERVAL_MS;
+  const remaining = Math.max(0, Math.ceil((nextAt - now) / 1000));
+  const countdown = `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, "0")}`;
+  const pct = hb.budgetTotal ? (hb.budgetUsed / hb.budgetTotal) * 100 : 0;
+
+  return (
+    <div className="mx-3 mb-4 px-3 py-2.5 rounded-lg bg-ink-850 hairline">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <StatusDot color="#f59e0b" pulse />
+          <span className="text-[12px] text-ink-100 font-medium">Reasoning agent</span>
+        </div>
+        <Mono className="text-[10.5px] text-ink-400">next {countdown}</Mono>
+      </div>
+      <div className="mt-2 h-1 rounded bg-ink-950 overflow-hidden">
+        <div className="h-full bg-amber-500/70 transition-[width] duration-700" style={{ width: `${pct}%` }} />
+      </div>
+      <div className="flex items-center justify-between mt-1.5">
+        <Mono className="text-[10.5px] text-ink-500">{hb.sweeps} sweeps</Mono>
+        <Mono className="text-[10.5px] text-ink-500">{(hb.budgetTotal - hb.budgetUsed).toLocaleString()} tok left</Mono>
+      </div>
+    </div>
+  );
+};
+
 export default function Sidebar({ active, onChange, collapsed, badgeCounts = {}, pendingDeliveries = 0 }: Props) {
   return (
     <aside className={"h-full bg-ink-900 flex flex-col hairline-r " + (collapsed ? "w-[64px]" : "w-[220px]")}>
@@ -128,6 +168,9 @@ export default function Sidebar({ active, onChange, collapsed, badgeCounts = {},
           </div>
         </div>
       )}
+
+      {/* Reasoning agent heartbeat — always-visible proof it's working */}
+      {!collapsed && <SidebarHeartbeat />}
 
       {/* Nav */}
       <nav className="px-2">

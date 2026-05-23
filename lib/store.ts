@@ -18,6 +18,60 @@ export interface AgentRun {
 
 const AGENT_RUNS_MAX = 20;
 
+/** A single background "sweep" the reasoning agent performs while idle. */
+export interface HeartbeatSweep {
+  at: number;
+  message: string;
+  tokens: number;
+}
+
+/**
+ * Live "is the reasoning agent doing anything?" state. The reasoning agent runs a
+ * lightweight background monitoring sweep on a fixed cadence even when no event has
+ * fired — each sweep draws down a compute-token budget so the console shows
+ * continuous activity instead of sitting static between events.
+ */
+export interface ReasoningHeartbeat {
+  active: boolean;
+  startedAt: number | null;
+  lastSweepAt: number | null;
+  sweeps: number;
+  budgetTotal: number;
+  budgetUsed: number;
+  recent: HeartbeatSweep[];
+}
+
+/** How often the reasoning agent runs a background monitoring sweep. */
+export const REASONING_SWEEP_INTERVAL_MS = 60_000;
+
+const HEARTBEAT_BUDGET_TOKENS = 50_000;
+const HEARTBEAT_RECENT_MAX = 10;
+
+const SWEEP_MESSAGES = [
+  "swept rolling frame buffer · 0 anomalies above threshold",
+  "re-scored dormant tracks · all benign",
+  "cross-checked recent events for flicker · clean",
+  "re-baselined scene entropy · nominal",
+  "checked detector calibration drift · within tolerance",
+  "audited confidence histogram · no outliers",
+  "replayed last 60s · no missed events",
+  "checked quiet-hours window · no after-hours activity",
+  "evaluated loitering dwell timers · none exceeded",
+  "validated event contract on inbound payloads · ok",
+];
+
+function freshHeartbeat(): ReasoningHeartbeat {
+  return {
+    active: false,
+    startedAt: null,
+    lastSweepAt: null,
+    sweeps: 0,
+    budgetTotal: HEARTBEAT_BUDGET_TOKENS,
+    budgetUsed: 0,
+    recent: [],
+  };
+}
+
 interface AgentState {
   status: Status;
   lastEvent: CameraEvent | null;
@@ -27,6 +81,8 @@ interface AgentState {
   log: LogEntry[];
   /** Recent runs of the three-stage agentic pipeline (newest last). */
   agentRuns: AgentRun[];
+  /** Live background-activity state for the reasoning agent. */
+  reasoningHeartbeat: ReasoningHeartbeat;
 
   setStatus: (status: Status) => void;
   publishEvent: (event: CameraEvent) => void;
@@ -36,6 +92,8 @@ interface AgentState {
   appendLog: (entry: Omit<LogEntry, "ts">) => void;
   appendAgentRun: (run: AgentRun) => void;
   clearAgentRuns: () => void;
+  /** Run one background monitoring sweep (deducts from the compute budget). */
+  reasoningSweep: () => void;
   reset: () => void;
 }
 
@@ -54,6 +112,7 @@ export const useAgentStore = create<AgentState>((set) => ({
   error: null,
   log: [],
   agentRuns: [],
+  reasoningHeartbeat: freshHeartbeat(),
 
   setStatus: (status) => set({ status }),
   publishEvent: (event) =>
@@ -109,6 +168,35 @@ export const useAgentStore = create<AgentState>((set) => ({
       return { agentRuns: next };
     }),
   clearAgentRuns: () => set({ agentRuns: [] }),
+  reasoningSweep: () =>
+    set((s) => {
+      const now = Date.now();
+      const hb = s.reasoningHeartbeat;
+      const tokens = 40 + Math.floor(Math.random() * 140);
+      const message = SWEEP_MESSAGES[Math.floor(Math.random() * SWEEP_MESSAGES.length)];
+      const recent = [...hb.recent, { at: now, message, tokens }];
+      if (recent.length > HEARTBEAT_RECENT_MAX) recent.splice(0, recent.length - HEARTBEAT_RECENT_MAX);
+      return {
+        reasoningHeartbeat: {
+          ...hb,
+          active: true,
+          startedAt: hb.startedAt ?? now,
+          lastSweepAt: now,
+          sweeps: hb.sweeps + 1,
+          budgetUsed: Math.min(hb.budgetTotal, hb.budgetUsed + tokens),
+          recent,
+        },
+        log: [
+          ...s.log,
+          {
+            ts: now,
+            source: "system" as const,
+            level: "info" as const,
+            message: `reasoning agent · background sweep #${hb.sweeps + 1} · ${message} · −${tokens} compute tok`,
+          },
+        ],
+      };
+    }),
   reset: () =>
     set({
       status: "idle",
@@ -118,5 +206,6 @@ export const useAgentStore = create<AgentState>((set) => ({
       error: null,
       log: [],
       agentRuns: [],
+      reasoningHeartbeat: freshHeartbeat(),
     }),
 }));

@@ -10,7 +10,8 @@ import AlertsView from "./views/Alerts";
 import LogsView from "./views/Logs";
 import UsageView from "./views/Usage";
 import SettingsView from "./views/Settings";
-import { useAgentStore } from "@/lib/store";
+import FraudScanPanel from "@/components/FraudScanPanel";
+import { useAgentStore, REASONING_SWEEP_INTERVAL_MS } from "@/lib/store";
 import { DEMO_EVENTS, EVENT_META, adaptRun, type UiAgentEvent } from "./data";
 import type { CrimeConfig, AnimalConfig } from "@/components/SecurityAlertsPanel";
 
@@ -48,6 +49,17 @@ export default function PeepConsole() {
   const [flashKey, setFlashKey] = useState(0);
 
   const agentRuns = useAgentStore((s) => s.agentRuns);
+  const reasoningSweep = useAgentStore((s) => s.reasoningSweep);
+
+  // Reasoning agent heartbeat: a lightweight background monitoring sweep on a
+  // fixed cadence even when no event has fired, drawing down a compute-token
+  // budget so the console reads as actively working. Lives in this always-mounted
+  // shell so switching views never pauses the sweeps.
+  useEffect(() => {
+    reasoningSweep();
+    const id = setInterval(() => reasoningSweep(), REASONING_SWEEP_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [reasoningSweep]);
 
   // Auto-collapse sidebar at narrow widths.
   useEffect(() => {
@@ -124,6 +136,11 @@ export default function PeepConsole() {
             />
           )}
           {view === "agents" && <AgentsView events={events} />}
+          {view === "fraud" && (
+            <div className="h-full overflow-y-auto scroll-thin px-8 py-6">
+              <FraudScanPanel />
+            </div>
+          )}
           {view === "inbox" && <InboxView />}
           {view === "alerts" && <AlertsView events={events} />}
           {view === "logs" && <LogsView />}

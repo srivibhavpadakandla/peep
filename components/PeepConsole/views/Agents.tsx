@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { icons } from "lucide-react";
+import ReasoningHeartbeat from "@/components/ReasoningHeartbeat";
 import { AGENTS, EVENT_META, fmtDay, fmtTime, fmtTimeS, type UiAgentEvent, type AgentDescriptor } from "../data";
 import {
   Btn,
@@ -217,6 +218,10 @@ export default function AgentsView({ events }: { events: UiAgentEvent[] }) {
             Refresh
           </Btn>
         </div>
+      </div>
+
+      <div className="px-8 pb-5">
+        <ReasoningHeartbeat variant="full" />
       </div>
 
       <div className="px-8 pb-8 grid grid-cols-2 gap-5">

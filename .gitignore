@@ -11,3 +11,9 @@ playwright-report
 
 .env.local.bak
 .env.*.bak
+
+# iOS — generated Xcode project + build artifacts (regenerate via `xcodegen` in ios/)
+ios/Peep.xcodeproj
+ios/build/
+ios/DerivedData/
+*.xcuserstate

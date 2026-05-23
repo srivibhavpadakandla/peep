@@ -14,6 +14,46 @@ export default function SettingsPanel() {
   const { status } = useSession();
   const [inbox, setInbox] = useState<InboxStatus | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showSetup, setShowSetup] = useState(false);
+  const [clientId, setClientId] = useState("");
+  const [clientSecret, setClientSecret] = useState("");
+  const [setupError, setSetupError] = useState<string | null>(null);
+  const [setupSuccess, setSetupSuccess] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const redirectUri = typeof window !== "undefined" ? `${window.location.origin}/api/auth/callback/google` : "";
+
+  const submitSetup = async () => {
+    setSetupError(null);
+    setSetupSuccess(null);
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/setup/google", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ client_id: clientId.trim(), client_secret: clientSecret.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSetupError(data.error ?? `Setup failed (${res.status})`);
+      } else {
+        setSetupSuccess(data.message ?? "Saved. Restart npm run dev.");
+        setClientId("");
+        setClientSecret("");
+      }
+    } catch (err) {
+      setSetupError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const copyRedirectUri = async () => {
+    try {
+      await navigator.clipboard.writeText(redirectUri);
+    } catch {
+      // ignore
+    }
+  };
 
   const refresh = async () => {
     setLoading(true);
@@ -61,11 +101,120 @@ export default function SettingsPanel() {
 
         <div className="mt-3 flex items-center gap-2 flex-wrap">
           {!configured ? (
-            <div className="text-[11px] text-amber-400">
-              Google OAuth not configured. Add <code className="font-mono text-amber-300">GOOGLE_CLIENT_ID</code>{" "}
-              and <code className="font-mono text-amber-300">GOOGLE_CLIENT_SECRET</code> to{" "}
-              <code className="font-mono text-amber-300">.env.local</code>, then restart{" "}
-              <code className="font-mono">npm run dev</code>. Until then, Peep uses the seeded demo inbox.
+            <div className="w-full space-y-2">
+              <div className="text-[11px] text-amber-400">
+                Google OAuth not configured. Peep is using the seeded demo inbox right now.
+              </div>
+              {!showSetup ? (
+                <button
+                  onClick={() => setShowSetup(true)}
+                  className="px-3 py-1.5 text-xs rounded border border-emerald-700 text-emerald-300 hover:bg-emerald-950/40"
+                >
+                  Set up Gmail in-app
+                </button>
+              ) : (
+                <div className="space-y-3 border border-neutral-800 rounded p-3 bg-neutral-950/60">
+                  <ol className="text-[11px] text-neutral-300 space-y-2 list-decimal list-inside">
+                    <li>
+                      Open the{" "}
+                      <a
+                        href="https://console.cloud.google.com/apis/credentials"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-emerald-400 underline hover:text-emerald-300"
+                      >
+                        Google Cloud Console credentials page ↗
+                      </a>
+                      , then click <span className="font-medium">Create credentials → OAuth client ID → Web application</span>.
+                    </li>
+                    <li>
+                      Add this <span className="font-medium">Authorized redirect URI</span>:
+                      <div className="mt-1 flex items-center gap-2">
+                        <code className="flex-1 font-mono text-[10px] bg-neutral-900 border border-neutral-800 rounded px-2 py-1 truncate text-neutral-200">
+                          {redirectUri}
+                        </code>
+                        <button
+                          onClick={copyRedirectUri}
+                          className="px-2 py-1 text-[10px] rounded border border-neutral-700 hover:bg-neutral-900"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </li>
+                    <li>
+                      Enable the Gmail API for your project at{" "}
+                      <a
+                        href="https://console.cloud.google.com/apis/library/gmail.googleapis.com"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-emerald-400 underline hover:text-emerald-300"
+                      >
+                        Gmail API ↗
+                      </a>
+                      .
+                    </li>
+                    <li>Paste the Client ID and Client Secret below:</li>
+                  </ol>
+
+                  <div className="space-y-1.5">
+                    <label className="block">
+                      <span className="text-[10px] uppercase tracking-wide text-neutral-500">Client ID</span>
+                      <input
+                        type="text"
+                        value={clientId}
+                        onChange={(e) => setClientId(e.target.value)}
+                        placeholder="e.g. 123456789-abcdef.apps.googleusercontent.com"
+                        className="mt-0.5 w-full font-mono text-[11px] bg-neutral-900 border border-neutral-800 rounded px-2 py-1.5 text-neutral-200 placeholder:text-neutral-600"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-[10px] uppercase tracking-wide text-neutral-500">Client Secret</span>
+                      <input
+                        type="password"
+                        value={clientSecret}
+                        onChange={(e) => setClientSecret(e.target.value)}
+                        placeholder="GOCSPX-…"
+                        className="mt-0.5 w-full font-mono text-[11px] bg-neutral-900 border border-neutral-800 rounded px-2 py-1.5 text-neutral-200 placeholder:text-neutral-600"
+                      />
+                    </label>
+                  </div>
+
+                  {setupError && <div className="text-[11px] text-red-400">{setupError}</div>}
+                  {setupSuccess && (
+                    <div className="text-[11px] text-emerald-400 space-y-1">
+                      <div>{setupSuccess}</div>
+                      <div className="text-neutral-400">
+                        In your terminal: press <code className="font-mono text-neutral-200">Ctrl+C</code> to stop, then run{" "}
+                        <code className="font-mono text-neutral-200">npm run dev</code> again. Then refresh this page and click{" "}
+                        <span className="text-emerald-300">Connect Gmail</span>.
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={submitSetup}
+                      disabled={submitting || !clientId.trim() || !clientSecret.trim()}
+                      className="px-3 py-1.5 text-xs rounded border border-emerald-700 text-emerald-300 hover:bg-emerald-950/40 disabled:opacity-50"
+                    >
+                      {submitting ? "Saving…" : "Save credentials"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowSetup(false);
+                        setSetupError(null);
+                        setSetupSuccess(null);
+                      }}
+                      className="px-2 py-1 text-[11px] rounded border border-neutral-800 text-neutral-400 hover:bg-neutral-900"
+                    >
+                      Cancel
+                    </button>
+                    <span className="ml-auto text-[10px] text-neutral-500">
+                      Peep auto-generates <code className="font-mono">NEXTAUTH_SECRET</code> for you.
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           ) : connected ? (
             <>

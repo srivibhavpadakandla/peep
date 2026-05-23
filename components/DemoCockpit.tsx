@@ -112,7 +112,7 @@ export default function DemoCockpit() {
         costUSD:
           prev.costUSD +
           (usageDelta ? (usageDelta.input_tokens * 3 + usageDelta.output_tokens * 15) / 1_000_000 : 0),
-        model: decision._mode === "gemini" ? "Gemini 2.0 Flash" : "rule-based router",
+        model: decision._mode === "gemini" ? "Gemini 2.5 Flash" : "rule-based router",
         callsCount: prev.callsCount + 1,
       }));
 
@@ -616,7 +616,7 @@ export default function DemoCockpit() {
                   </div>
                 </div>
                 <div className="text-[8px] font-mono text-[#8C8C85]/60 uppercase">
-                  {orchestrationMode === "gemini" ? "Gemini 2.0 Flash · free tier · ~$0.075/MTok" : "free · no API calls"}
+                  {orchestrationMode === "gemini" ? "Gemini 2.5 Flash · free tier · ~$0.075/MTok" : "free · no API calls"}
                 </div>
               </div>
 

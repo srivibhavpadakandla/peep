@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { CameraEvent } from "../contract";
 import type { OrchestrationDecision, OrchestrationRouter, Workflow } from "./router";
 
-const MODEL = "gemini-2.0-flash";
+const MODEL = "gemini-2.5-flash";
 
 const VALID_WORKFLOWS: Workflow[] = [
   "amazon_refund_claim",

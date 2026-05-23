@@ -6,7 +6,91 @@
   color-scheme: dark;
 }
 
-html, body {
+html,
+body {
   background: #0a0a0a;
-  color: #f5f5f5;
+  color: #e8e8e3;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: #10b98155;
+}
+
+/* Hairline borders via inset shadows so they stack on transparent backgrounds. */
+.hairline {
+  box-shadow: inset 0 0 0 1px #1f1f1e;
+}
+.hairline-t {
+  box-shadow: inset 0 1px 0 0 #1f1f1e;
+}
+.hairline-b {
+  box-shadow: inset 0 -1px 0 0 #1f1f1e;
+}
+.hairline-r {
+  box-shadow: inset -1px 0 0 0 #1f1f1e;
+}
+.hairline-l {
+  box-shadow: inset 1px 0 0 0 #1f1f1e;
+}
+
+/* Thin scrollbars */
+.scroll-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: #2a2a2a;
+  border-radius: 8px;
+}
+.scroll-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Camera atmospheric textures */
+.grid-bg {
+  background-image:
+    linear-gradient(to right, #ffffff08 1px, transparent 1px),
+    linear-gradient(to bottom, #ffffff08 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+.noise {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 3px 3px;
+}
+
+/* Native control styling */
+details > summary {
+  list-style: none;
+  cursor: pointer;
+}
+details > summary::-webkit-details-marker {
+  display: none;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  background: #2a2a2a;
+  border-radius: 999px;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 14px;
+  width: 14px;
+  margin-top: -5px;
+  background: #e8e8e3;
+  border-radius: 999px;
+  border: 1px solid #525250;
+  cursor: pointer;
+}
+input[type="checkbox"] {
+  accent-color: #10b981;
 }

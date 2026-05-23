@@ -32,6 +32,7 @@ export async function POST(request: Request) {
   const obj = body as Record<string, unknown>;
   const clientId = typeof obj.client_id === "string" ? obj.client_id.trim() : "";
   const clientSecret = typeof obj.client_secret === "string" ? obj.client_secret.trim() : "";
+  const providedOrigin = typeof obj.origin === "string" ? obj.origin.trim() : "";
 
   if (!clientId || !clientSecret) {
     return NextResponse.json({ error: "client_id and client_secret are required" }, { status: 400 });
@@ -42,6 +43,19 @@ export async function POST(request: Request) {
     }, { status: 400 });
   }
 
+  // Derive the actual app origin so NEXTAUTH_URL matches the port the user is on.
+  // Priority: explicit origin in body → request Origin header → host header → fallback 3000.
+  let nextAuthUrl = providedOrigin;
+  if (!nextAuthUrl) {
+    const originHeader = request.headers.get("origin");
+    if (originHeader) nextAuthUrl = originHeader;
+  }
+  if (!nextAuthUrl) {
+    const host = request.headers.get("host");
+    if (host) nextAuthUrl = `http://${host}`;
+  }
+  if (!nextAuthUrl) nextAuthUrl = "http://localhost:3000";
+
   const envPath = path.join(process.cwd(), ".env.local");
   let existing = "";
   try {
@@ -50,16 +64,16 @@ export async function POST(request: Request) {
     // file doesn't exist yet; we'll create it
   }
 
+  // Always overwrite NEXTAUTH_URL — a stale 3000 here is the #1 cause of OAuth
+  // redirects landing on a dead port after the user switches workspaces.
   const updates: Record<string, string> = {
     GOOGLE_CLIENT_ID: clientId,
     GOOGLE_CLIENT_SECRET: clientSecret,
+    NEXTAUTH_URL: nextAuthUrl,
   };
 
   if (!readEnvValue(existing, "NEXTAUTH_SECRET")) {
     updates.NEXTAUTH_SECRET = crypto.randomBytes(32).toString("base64");
-  }
-  if (!readEnvValue(existing, "NEXTAUTH_URL")) {
-    updates.NEXTAUTH_URL = "http://localhost:3000";
   }
 
   const next = applyEnvUpdates(existing, updates);
@@ -67,8 +81,10 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     ok: true,
-    message: "Credentials saved. Restart `npm run dev` for them to take effect.",
+    message: `Credentials saved. NEXTAUTH_URL set to ${nextAuthUrl}. Restart \`npm run dev\` for NextAuth to pick up the new URL.`,
     keys_written: Object.keys(updates),
+    nextauth_url: nextAuthUrl,
+    redirect_uri: `${nextAuthUrl}/api/auth/callback/google`,
   });
 }
 

@@ -30,7 +30,11 @@ export default function SettingsPanel() {
       const res = await fetch("/api/setup/google", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ client_id: clientId.trim(), client_secret: clientSecret.trim() }),
+        body: JSON.stringify({
+          client_id: clientId.trim(),
+          client_secret: clientSecret.trim(),
+          origin: typeof window !== "undefined" ? window.location.origin : "",
+        }),
       });
       const data = await res.json();
       if (!res.ok) {

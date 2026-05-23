@@ -27,6 +27,12 @@ interface Props {
   crimeOptions?: Partial<CrimeMonitorOptions>;
   /** Animal-monitor overrides. */
   animalOptions?: Partial<AnimalMonitorOptions>;
+  /**
+   * Source for the vision feed:
+   *   - "live"  → camera via getUserMedia (default)
+   *   - File    → uploaded video file; detection runs as the video plays
+   */
+  videoSource?: "live" | File;
 }
 
 export default function VisionAgent({
@@ -34,6 +40,7 @@ export default function VisionAgent({
   detectorFactory,
   crimeOptions,
   animalOptions,
+  videoSource = "live",
 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -62,24 +69,53 @@ export default function VisionAgent({
     animalMonitorRef.current = animalMonitor;
     let rafId = 0;
 
+    let objectUrl: string | null = null;
+
     async function init() {
       try {
         void requestNotificationPermission();
-        stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false });
-        if (cancelled) return;
         const video = videoRef.current!;
-        video.srcObject = stream;
-        await video.play();
 
-        recorder = new ClipRecorder(stream);
-        recorder.start();
+        if (videoSource === "live") {
+          stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false });
+          if (cancelled) return;
+          video.srcObject = stream;
+          video.muted = true;
+          video.loop = false;
+          await video.play();
+        } else {
+          // Uploaded file: load as Object URL and stream from the playing video element.
+          objectUrl = URL.createObjectURL(videoSource);
+          video.srcObject = null;
+          video.src = objectUrl;
+          video.muted = true;
+          video.loop = true;
+          video.playsInline = true;
+          video.controls = true;
+          await video.play().catch(() => undefined);
+          // captureStream() exposes the playing video as a MediaStream we can record.
+          const capture = (video as HTMLVideoElement & { captureStream?: () => MediaStream }).captureStream?.();
+          if (capture) stream = capture;
+        }
+
+        if (stream) {
+          recorder = new ClipRecorder(stream);
+          recorder.start();
+        }
 
         detector = detectorFactory ? detectorFactory() : new CocoSsdDetector();
         await detector.load();
         if (cancelled) return;
         setReady(true);
         setStatus("watching");
-        appendLog({ source: "vision", level: "info", message: "vision agent online; target=" + targetLabel });
+        appendLog({
+          source: "vision",
+          level: "info",
+          message:
+            videoSource === "live"
+              ? `vision agent online; live camera; target=${targetLabel}`
+              : `vision agent online; imported ${videoSource.name}; target=${targetLabel}`,
+        });
 
         const loop = async () => {
           if (cancelled || !detector || !video) return;
@@ -136,13 +172,14 @@ export default function VisionAgent({
       recorder?.stop();
       detector?.dispose?.();
       stream?.getTracks().forEach((t) => t.stop());
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
       crimeMonitorRef.current = null;
       animalMonitorRef.current = null;
     };
     // crimeOptions is applied via a separate effect so quiet-hours can change
     // without resetting the camera / detector / state machines.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetLabel, detectorFactory, publishEvent, appendLog, setStatus]);
+  }, [targetLabel, detectorFactory, publishEvent, appendLog, setStatus, videoSource]);
 
   useEffect(() => {
     if (crimeMonitorRef.current && crimeOptions) {
@@ -163,6 +200,9 @@ export default function VisionAgent({
       <div className="absolute top-2 left-2 flex gap-2 text-xs">
         <span className="px-2 py-1 rounded bg-black/70 border border-neutral-700">
           {ready ? "● online" : loadError ? "● error" : "● loading…"}
+        </span>
+        <span className="px-2 py-1 rounded bg-black/70 border border-neutral-700">
+          source: <code>{videoSource === "live" ? "live camera" : "imported"}</code>
         </span>
         <span className="px-2 py-1 rounded bg-black/70 border border-neutral-700">
           target: <code>{targetLabel}</code>

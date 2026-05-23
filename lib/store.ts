@@ -4,9 +4,19 @@ import { create } from "zustand";
 import type { CameraEvent } from "./contract";
 import type { OrchestrationDecision } from "./orchestration/router";
 import type { BrowserAgentResult } from "./browser-agent/types";
+import type { PipelineResult } from "./agents/types";
 import { confidencePercent, decisionSentence, eventEmoji, eventTitle, resultSentence } from "./labels";
 
 export type Status = "idle" | "watching" | "event_detected" | "orchestrating" | "acting" | "done" | "error";
+
+/** A single run of the three-stage agentic pipeline, with the triggering event. */
+export interface AgentRun {
+  ran_at: number;
+  event: CameraEvent;
+  result: PipelineResult;
+}
+
+const AGENT_RUNS_MAX = 20;
 
 interface AgentState {
   status: Status;
@@ -15,6 +25,8 @@ interface AgentState {
   result: BrowserAgentResult | null;
   error: string | null;
   log: LogEntry[];
+  /** Recent runs of the three-stage agentic pipeline (newest last). */
+  agentRuns: AgentRun[];
 
   setStatus: (status: Status) => void;
   publishEvent: (event: CameraEvent) => void;
@@ -22,6 +34,8 @@ interface AgentState {
   setResult: (result: BrowserAgentResult) => void;
   setError: (message: string) => void;
   appendLog: (entry: Omit<LogEntry, "ts">) => void;
+  appendAgentRun: (run: AgentRun) => void;
+  clearAgentRuns: () => void;
   reset: () => void;
 }
 
@@ -39,6 +53,7 @@ export const useAgentStore = create<AgentState>((set) => ({
   result: null,
   error: null,
   log: [],
+  agentRuns: [],
 
   setStatus: (status) => set({ status }),
   publishEvent: (event) =>
@@ -86,6 +101,22 @@ export const useAgentStore = create<AgentState>((set) => ({
       log: [...s.log, { ts: Date.now(), source: "system", level: "error", message }],
     })),
   appendLog: (entry) => set((s) => ({ log: [...s.log, { ...entry, ts: Date.now() }] })),
+  appendAgentRun: (run) =>
+    set((s) => {
+      const next = [...s.agentRuns, run];
+      // Keep the last N only — older runs are dropped from memory.
+      if (next.length > AGENT_RUNS_MAX) next.splice(0, next.length - AGENT_RUNS_MAX);
+      return { agentRuns: next };
+    }),
+  clearAgentRuns: () => set({ agentRuns: [] }),
   reset: () =>
-    set({ status: "idle", lastEvent: null, decision: null, result: null, error: null, log: [] }),
+    set({
+      status: "idle",
+      lastEvent: null,
+      decision: null,
+      result: null,
+      error: null,
+      log: [],
+      agentRuns: [],
+    }),
 }));

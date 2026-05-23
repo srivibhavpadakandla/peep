@@ -10,12 +10,23 @@ interface Props {
   loiteringThresholdMs: number;
 }
 
+interface HistoryEntry {
+  event: CameraEvent;
+  result: PipelineResult;
+  ranAt: number;
+}
+
+const STAGE_LABELS = ["Orchestrate", "Reason", "Execute"] as const;
+
 export default function AgentPipelinePanel({ loiteringThresholdMs }: Props) {
   const lastEvent = useAgentStore((s) => s.lastEvent);
+  const appendAgentRun = useAgentStore((s) => s.appendAgentRun);
   const [autoRun, setAutoRun] = useState(false);
   const [result, setResult] = useState<PipelineResult | null>(null);
   const [running, setRunning] = useState(false);
+  const [runningStage, setRunningStage] = useState<0 | 1 | 2 | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [runHistory, setRunHistory] = useState<HistoryEntry[]>([]);
   const handledRef = useRef<number>(0);
   // Keep a small history for the flicker check the reasoning agent runs.
   const historyRef = useRef<CameraEvent[]>([]);
@@ -34,6 +45,11 @@ export default function AgentPipelinePanel({ loiteringThresholdMs }: Props) {
   const run = async (event: CameraEvent) => {
     setRunning(true);
     setError(null);
+    setResult(null);
+    setRunningStage(0);
+    // Visual progression — paces the stage dots even if the request resolves fast.
+    const t1 = setTimeout(() => setRunningStage(1), 250);
+    const t2 = setTimeout(() => setRunningStage(2), 600);
     try {
       const res = await fetch("/api/agent/pipeline", {
         method: "POST",
@@ -48,10 +64,16 @@ export default function AgentPipelinePanel({ loiteringThresholdMs }: Props) {
       const data = (await res.json()) as PipelineResult;
       if (!res.ok) throw new Error((data as unknown as { error?: string }).error ?? `pipeline ${res.status}`);
       setResult(data);
+      const ranAt = Date.now();
+      setRunHistory((h) => [{ event, result: data, ranAt }, ...h].slice(0, 12));
+      appendAgentRun({ ran_at: ranAt, event, result: data });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
+      clearTimeout(t1);
+      clearTimeout(t2);
       setRunning(false);
+      setRunningStage(null);
     }
   };
 
@@ -75,7 +97,7 @@ export default function AgentPipelinePanel({ loiteringThresholdMs }: Props) {
         </label>
       </header>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <button
           onClick={() => lastEvent && run(lastEvent)}
           disabled={!lastEvent || running}
@@ -88,8 +110,59 @@ export default function AgentPipelinePanel({ loiteringThresholdMs }: Props) {
             📧 Email sent · {result.executor?.message_id?.slice(0, 12)}…
           </span>
         )}
+        {result?.timings && (
+          <span className="text-[10px] text-neutral-500 font-mono ml-auto">
+            total {result.timings.total_ms}ms
+          </span>
+        )}
         {error && <span className="text-[11px] text-red-400">{error}</span>}
       </div>
+
+      {/* Live pipeline progress strip */}
+      <PipelineProgress
+        running={running}
+        runningStage={runningStage}
+        result={result}
+      />
+
+      {/* Event history strip — click any to replay */}
+      {runHistory.length > 0 && (
+        <div>
+          <div className="text-[10px] uppercase tracking-wide text-neutral-500 mb-1">
+            Recent runs (click to replay)
+          </div>
+          <div className="flex gap-1.5 overflow-x-auto pb-1">
+            {runHistory.map((h) => {
+              const tone = h.result.email_sent
+                ? "border-emerald-700 text-emerald-300 bg-emerald-950/30"
+                : h.result.reasoning?.verdict === "false_positive"
+                ? "border-amber-700 text-amber-300 bg-amber-950/30"
+                : h.result.orchestrator.next === "skip"
+                ? "border-neutral-700 text-neutral-400 bg-neutral-900/40"
+                : "border-sky-700 text-sky-300 bg-sky-950/30";
+              const marker = h.result.email_sent
+                ? "✉"
+                : h.result.reasoning?.verdict === "false_positive"
+                ? "✗"
+                : h.result.orchestrator.next === "skip"
+                ? "—"
+                : "•";
+              return (
+                <button
+                  key={`${h.event.timestamp}-${h.ranAt}`}
+                  onClick={() => run(h.event)}
+                  disabled={running}
+                  className={`shrink-0 text-[10px] font-mono px-2 py-1 border rounded ${tone} hover:opacity-100 opacity-90 disabled:opacity-50`}
+                  title={`${h.event.event_type} · conf ${h.event.confidence.toFixed(2)}\n${h.result.reasoning?.rationale ?? h.result.orchestrator.reason}`}
+                >
+                  {marker} {new Date(h.event.timestamp).toLocaleTimeString().slice(0, 5)} ·{" "}
+                  {h.event.event_type.split("_")[0]}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {!result && <p className="text-xs text-neutral-500">No agentic run yet. Click "Run on last event" once something has fired.</p>}
 
@@ -100,6 +173,7 @@ export default function AgentPipelinePanel({ loiteringThresholdMs }: Props) {
             badge={result.orchestrator.workflow}
             color={result.orchestrator.next === "skip" ? "neutral" : "blue"}
             json={result.orchestrator}
+            ms={result.timings?.orchestrator_ms}
           >
             <p className="text-xs text-neutral-200">
               <span className="font-medium">{result.orchestrator.workflow}</span> — {result.orchestrator.reason}
@@ -112,6 +186,7 @@ export default function AgentPipelinePanel({ loiteringThresholdMs }: Props) {
               badge={result.reasoning.verdict}
               color={result.reasoning.verdict === "real" ? "emerald" : "amber"}
               json={result.reasoning}
+              ms={result.timings?.reasoning_ms}
             >
               <p className="text-xs text-neutral-200">
                 <span className="font-medium">{result.reasoning.verdict.toUpperCase()}</span>
@@ -134,6 +209,7 @@ export default function AgentPipelinePanel({ loiteringThresholdMs }: Props) {
               badge={result.executor.success ? "done" : "failed"}
               color={result.executor.success ? "emerald" : "red"}
               json={result.executor}
+              ms={result.timings?.executor_ms}
             >
               {result.executor.success ? (
                 <div className="text-xs space-y-0.5">
@@ -171,12 +247,14 @@ function Stage({
   badge,
   color,
   json,
+  ms,
   children,
 }: {
   title: string;
   badge: string;
   color: "neutral" | "blue" | "emerald" | "amber" | "red";
   json: unknown;
+  ms?: number;
   children: React.ReactNode;
 }) {
   const cls = {
@@ -188,15 +266,90 @@ function Stage({
   }[color];
   return (
     <div className="border border-neutral-800 rounded p-2 space-y-1">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <span className="text-[10px] uppercase tracking-wide text-neutral-500">{title}</span>
-        <span className={`text-[10px] uppercase tracking-wide px-2 py-0.5 rounded border ${cls}`}>{badge}</span>
+        <div className="flex items-center gap-1.5">
+          {typeof ms === "number" && (
+            <span className="text-[10px] text-neutral-500 font-mono tabular-nums">{ms}ms</span>
+          )}
+          <span className={`text-[10px] uppercase tracking-wide px-2 py-0.5 rounded border ${cls}`}>{badge}</span>
+        </div>
       </div>
       {children}
       <details className="text-[10px] text-neutral-500">
         <summary className="cursor-pointer">Stage JSON</summary>
         <pre className="mt-1 whitespace-pre-wrap break-all">{JSON.stringify(json, null, 2)}</pre>
       </details>
+    </div>
+  );
+}
+
+function PipelineProgress({
+  running,
+  runningStage,
+  result,
+}: {
+  running: boolean;
+  runningStage: 0 | 1 | 2 | null;
+  result: PipelineResult | null;
+}) {
+  // Each stage state: "idle" | "running" | "done" | "skipped" | "failed"
+  type StageState = "idle" | "running" | "done" | "skipped" | "failed";
+  const states: StageState[] = [0, 1, 2].map((i): StageState => {
+    if (running) {
+      if (runningStage === null) return "idle";
+      if (i < runningStage) return "done";
+      if (i === runningStage) return "running";
+      return "idle";
+    }
+    if (!result) return "idle";
+    if (i === 0) return "done";
+    if (i === 1) {
+      if (result.orchestrator.next === "skip") return "skipped";
+      return result.reasoning ? "done" : "skipped";
+    }
+    // i === 2 (executor)
+    if (!result.reasoning || result.reasoning.verdict === "false_positive") return "skipped";
+    if (!result.executor) return "skipped";
+    return result.executor.success ? "done" : "failed";
+  });
+
+  return (
+    <div className="flex items-center gap-1.5 font-mono text-[10px]">
+      {STAGE_LABELS.map((label, i) => {
+        const s = states[i];
+        const dotCls =
+          s === "running"
+            ? "bg-emerald-400 animate-pulse"
+            : s === "done"
+            ? "bg-emerald-500"
+            : s === "failed"
+            ? "bg-red-500"
+            : s === "skipped"
+            ? "bg-neutral-700"
+            : "bg-neutral-800";
+        const textCls =
+          s === "running"
+            ? "text-emerald-300"
+            : s === "done"
+            ? "text-emerald-400"
+            : s === "failed"
+            ? "text-red-400"
+            : s === "skipped"
+            ? "text-neutral-600 line-through"
+            : "text-neutral-500";
+        return (
+          <div key={label} className="flex items-center gap-1.5">
+            <span className={`inline-block w-1.5 h-1.5 rounded-full ${dotCls}`} />
+            <span className={`uppercase tracking-wider ${textCls}`}>{label}</span>
+            {i < 2 && (
+              <span className="text-neutral-700 mx-0.5">
+                {states[i + 1] === "running" ? "─▶" : "──"}
+              </span>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

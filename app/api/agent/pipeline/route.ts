@@ -26,26 +26,41 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
   }
 
+  const t0 = performance.now();
   const req = body as Partial<PipelineRequest> | null;
   if (!req || typeof req !== "object" || !isCameraEvent(req.event)) {
     // Safe-fail at stage 1 — return the orchestrator's safe-fail shape rather
     // than a refusal, per spec.
+    const tA = performance.now();
     const orchestratorOutput = orchestrate(req?.event);
-    const result: PipelineResult = { orchestrator: orchestratorOutput, email_sent: false };
+    const orchestrator_ms = Math.round(performance.now() - tA);
+    const result: PipelineResult = {
+      orchestrator: orchestratorOutput,
+      email_sent: false,
+      timings: { orchestrator_ms, total_ms: Math.round(performance.now() - t0) },
+    };
     return NextResponse.json(result);
   }
 
+  const tA = performance.now();
   const orchestratorOutput = orchestrate(req.event);
+  const orchestrator_ms = Math.round(performance.now() - tA);
 
   if (orchestratorOutput.next === "skip") {
-    const result: PipelineResult = { orchestrator: orchestratorOutput, email_sent: false };
+    const result: PipelineResult = {
+      orchestrator: orchestratorOutput,
+      email_sent: false,
+      timings: { orchestrator_ms, total_ms: Math.round(performance.now() - t0) },
+    };
     return NextResponse.json(result);
   }
 
+  const tB = performance.now();
   const history = Array.isArray(req.history) ? req.history.filter(isCameraEvent) : [];
   const reasoningOutput = reason(req.event, history, {
     loiteringThresholdMs: req.loiteringThresholdMs ?? 5000,
   });
+  const reasoning_ms = Math.round(performance.now() - tB);
 
   // Don't even attempt execution on a false positive.
   if (reasoningOutput.verdict === "false_positive") {
@@ -53,6 +68,7 @@ export async function POST(request: Request) {
       orchestrator: orchestratorOutput,
       reasoning: reasoningOutput,
       email_sent: false,
+      timings: { orchestrator_ms, reasoning_ms, total_ms: Math.round(performance.now() - t0) },
     };
     return NextResponse.json(result);
   }
@@ -65,6 +81,7 @@ export async function POST(request: Request) {
   const sendToken =
     orchestratorOutput.workflow === "send_security_email" && hasSendScope ? accessToken : null;
 
+  const tC = performance.now();
   const executorOutput = await execute({
     workflow: orchestratorOutput.workflow,
     decision: orchestratorOutput,
@@ -72,12 +89,19 @@ export async function POST(request: Request) {
     event: req.event,
     accessToken: sendToken,
   });
+  const executor_ms = Math.round(performance.now() - tC);
 
   const result: PipelineResult = {
     orchestrator: orchestratorOutput,
     reasoning: reasoningOutput,
     executor: executorOutput,
     email_sent: Boolean(executorOutput.success && executorOutput.message_id),
+    timings: {
+      orchestrator_ms,
+      reasoning_ms,
+      executor_ms,
+      total_ms: Math.round(performance.now() - t0),
+    },
   };
 
   return NextResponse.json(result);

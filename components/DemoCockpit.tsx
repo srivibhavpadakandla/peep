@@ -8,6 +8,18 @@ import InboxPanel from "./InboxPanel";
 import SecurityAlertsPanel, { type CrimeConfig, type AnimalConfig } from "./SecurityAlertsPanel";
 import SettingsPanel from "./SettingsPanel";
 import AgentPipelinePanel from "./AgentPipelinePanel";
+import EventLauncher from "./EventLauncher";
+import AgentsView from "./AgentsView";
+import {
+  confidencePercent,
+  confidenceQual,
+  decisionSentence,
+  eventDescription,
+  eventEmoji,
+  eventTitle,
+  formatReceiptId,
+  resultSentence,
+} from "@/lib/labels";
 
 export default function DemoCockpit() {
   const lastEvent = useAgentStore((s) => s.lastEvent);
@@ -53,12 +65,15 @@ export default function DemoCockpit() {
     completionTokens: 0,
     totalTokens: 0,
     costUSD: 0,
-    model: "Claude 3.5 Sonnet",
+    model: "—",
     callsCount: 0,
   });
 
   // Navigation tab state matching Claude Console tab sections
-  const [activeTab, setActiveTab] = useState<"workbench" | "logs" | "usage" | "settings">("workbench");
+  const [activeTab, setActiveTab] = useState<"workbench" | "agents" | "logs" | "usage" | "settings">("workbench");
+
+  // Video source for the vision agent: live camera or imported file
+  const [videoFile, setVideoFile] = useState<File | null>(null);
 
   // Activity Log Search & Filter States
   const [logSearch, setLogSearch] = useState("");
@@ -85,19 +100,19 @@ export default function DemoCockpit() {
       setOrchestrationMode(decision._mode ?? "");
       setDecision(decision);
 
-      // Accumulate token cost metrics completely in UI space (keeps tests clean!)
-      const inputTokens = 382 + Math.floor(event.confidence * 25);
-      const outputTokens = 146 + (decision.workflow === "amazon_refund_claim" ? 40 : decision.workflow === "security_alert" ? 30 : 0);
-      const totalTokens = inputTokens + outputTokens;
-      // Claude 3.5 Sonnet pricing: $3.00/MTok input, $15.00/MTok output
-      const cost = (inputTokens * 3.00 + outputTokens * 15.00) / 1_000_000;
-      
+      // Track real pipeline activity. Token counts come from the API only when
+      // a real Claude call was made; otherwise we just bump the call counter
+      // and leave token/cost at the actual measured values (0 for the mock).
+      const usageDelta = (decision as { usage?: { input_tokens: number; output_tokens: number } }).usage;
       setUsage((prev) => ({
-        promptTokens: prev.promptTokens + inputTokens,
-        completionTokens: prev.completionTokens + outputTokens,
-        totalTokens: prev.totalTokens + totalTokens,
-        costUSD: prev.costUSD + cost,
-        model: decision._mode === "mock" ? "Mock Claude 3.5 Sonnet" : "Claude 3.5 Sonnet",
+        promptTokens: prev.promptTokens + (usageDelta?.input_tokens ?? 0),
+        completionTokens: prev.completionTokens + (usageDelta?.output_tokens ?? 0),
+        totalTokens:
+          prev.totalTokens + (usageDelta ? usageDelta.input_tokens + usageDelta.output_tokens : 0),
+        costUSD:
+          prev.costUSD +
+          (usageDelta ? (usageDelta.input_tokens * 3 + usageDelta.output_tokens * 15) / 1_000_000 : 0),
+        model: decision._mode === "claude" ? "Claude (Sonnet 4.6)" : "rule-based router",
         callsCount: prev.callsCount + 1,
       }));
 
@@ -122,7 +137,7 @@ export default function DemoCockpit() {
       completionTokens: 0,
       totalTokens: 0,
       costUSD: 0,
-      model: "Claude 3.5 Sonnet",
+      model: "—",
       callsCount: 0,
     });
   };
@@ -135,29 +150,16 @@ export default function DemoCockpit() {
     return matchesSource && matchesSearch;
   });
 
-  // Extract individual orchestration calls from logs for the telemetry table
+  // Extract individual orchestration calls from logs for the telemetry table.
+  // Token counts and cost are shown ONLY for events we have real measurements
+  // for (i.e. a real Claude call was made). Otherwise we leave them blank.
   const orchestrationCalls = log
-    .filter((l) => l.source === "orchestration" && l.message.startsWith("workflow="))
-    .map((l, idx) => {
-      // Parse out parameters from the log message: workflow=... reason=...
-      const workflowMatch = l.message.match(/workflow=([^\s]+)/);
-      const workflow = workflowMatch ? workflowMatch[1] : "unknown";
-      
-      // Calculate token details dynamically matching total estimates
-      const inputTokens = 382 + Math.floor(0.85 * 25);
-      const outputTokens = 146 + (workflow === "amazon_refund_claim" ? 40 : workflow === "security_alert" ? 30 : 0);
-      const cost = (inputTokens * 3.00 + outputTokens * 15.00) / 1_000_000;
-      
-      return {
-        id: idx + 1,
-        timestamp: l.ts,
-        workflow,
-        cost,
-        promptTokens: inputTokens,
-        completionTokens: outputTokens,
-        totalTokens: inputTokens + outputTokens,
-      };
-    });
+    .filter((l) => l.source === "orchestration")
+    .map((l, idx) => ({
+      id: idx + 1,
+      timestamp: l.ts,
+      message: l.message,
+    }));
 
   return (
     <div className="flex flex-col lg:flex-row min-h-screen bg-[#1E1E1D] text-[#E6E6E0] font-sans antialiased selection:bg-emerald-500/20 selection:text-emerald-300">
@@ -197,6 +199,23 @@ export default function DemoCockpit() {
                 <span>WORKBENCH</span>
               </div>
               {status === "watching" && <span className="text-[8px] px-1 bg-emerald-950/40 text-emerald-400 font-normal border border-emerald-900/30">LIVE</span>}
+            </button>
+
+            <button
+              onClick={() => setActiveTab("agents")}
+              className={`w-full text-left font-mono text-[11px] px-3 py-2 rounded-none border transition-all flex items-center justify-between ${
+                activeTab === "agents"
+                  ? "bg-[#383E2A]/20 border-[#525D44]/40 text-[#D2E7C9] font-bold"
+                  : "bg-transparent border-transparent text-[#8C8C85] hover:text-[#E6E6E0] hover:bg-[#1C1C1B]"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0zM12 5v14" />
+                </svg>
+                <span>AGENTS</span>
+              </div>
+              <span className="text-[9px] font-normal text-[#8C8C85]">4</span>
             </button>
 
             <button
@@ -324,15 +343,67 @@ export default function DemoCockpit() {
                 {/* Vision Feed Camera Container */}
                 <div className="bg-[#171716] border border-[#2C2C2A] p-4 flex flex-col rounded-none">
                   <header className="mb-3 flex items-center justify-between">
-                    <h2 className="text-xs font-mono font-bold tracking-wider text-[#8C8C85] uppercase">Vision Feed (Webcam)</h2>
+                    <h2 className="text-xs font-mono font-bold tracking-wider text-[#8C8C85] uppercase">
+                      Vision Feed {videoFile ? "(Imported)" : "(Webcam)"}
+                    </h2>
                     <div className="flex items-center gap-1.5">
-                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                      <span className="text-[9px] font-mono text-emerald-500/60 uppercase">Live Detection</span>
+                      <span className={`inline-block w-1.5 h-1.5 rounded-full ${videoFile ? "bg-sky-400" : "bg-emerald-500 animate-pulse"}`}></span>
+                      <span className="text-[9px] font-mono uppercase text-emerald-500/60">
+                        {videoFile ? "video import" : "Live Detection"}
+                      </span>
                     </div>
                   </header>
+
+                  {/* Source switcher */}
+                  <div className="mb-3 flex items-center gap-2 text-[10px] font-mono">
+                    <button
+                      onClick={() => setVideoFile(null)}
+                      className={`px-2 py-1 border ${
+                        !videoFile
+                          ? "border-emerald-600/60 text-emerald-300 bg-emerald-950/30"
+                          : "border-[#2C2C2A] text-[#8C8C85] hover:text-[#E6E6E0]"
+                      }`}
+                    >
+                      LIVE CAMERA
+                    </button>
+                    <label
+                      className={`px-2 py-1 border cursor-pointer ${
+                        videoFile
+                          ? "border-sky-600/60 text-sky-300 bg-sky-950/30"
+                          : "border-[#2C2C2A] text-[#8C8C85] hover:text-[#E6E6E0]"
+                      }`}
+                    >
+                      IMPORT VIDEO…
+                      <input
+                        type="file"
+                        accept="video/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0] ?? null;
+                          setVideoFile(f);
+                          // reset so picking the same file twice still fires onChange
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                    {videoFile && (
+                      <>
+                        <span className="text-[10px] text-neutral-400 truncate max-w-[200px]" title={videoFile.name}>
+                          {videoFile.name}
+                        </span>
+                        <button
+                          onClick={() => setVideoFile(null)}
+                          className="ml-auto text-[10px] text-neutral-500 hover:text-neutral-300"
+                        >
+                          ✕ remove
+                        </button>
+                      </>
+                    )}
+                  </div>
+
                   <div className="flex justify-center">
-                    <VisionAgent 
-                      key={target} 
+                    <VisionAgent
+                      key={`${target}-${videoFile?.name ?? "live"}`}
                       targetLabel={target}
                       crimeOptions={crimeConfig}
                       animalOptions={{
@@ -341,81 +412,54 @@ export default function DemoCockpit() {
                         cooldownMs: animalConfig.cooldownMs,
                         oncePerSession: animalConfig.oncePerSession,
                       }}
+                      videoSource={videoFile ?? "live"}
                     />
                   </div>
+                  {videoFile && (
+                    <p className="mt-2 text-[10px] text-neutral-500 font-mono leading-relaxed">
+                      Detection is running against the video frame-by-frame. Switch to the Agents tab to watch the
+                      three agents reason through whatever fires.
+                    </p>
+                  )}
                 </div>
 
                 {/* Srivibhav's Inbox Panel (Fully Integrated!) */}
                 <InboxPanel />
               </div>
 
-              {/* Right Column: Execution Workbench Output Cards */}
+              {/* Right Column: Current Activity (compact) */}
               <div className="space-y-6">
-                {/* Last Vision Event */}
-                <Panel title="Last Vision Event" badge={lastEvent ? lastEvent.event_type : "—"}>
+                <Panel title="Current Activity" badge={lastEvent ? "live" : "idle"}>
                   {lastEvent ? (
-                    <div className="space-y-3">
-                      <pre className="bg-[#0A0A0A] border border-[#2C2C2A] p-3 text-[10px] font-mono text-[#C1C1B8] overflow-x-auto selection:bg-emerald-500/20">
-{JSON.stringify(
-  { ...lastEvent, evidence_clip: { ...lastEvent.evidence_clip, url: lastEvent.evidence_clip.url.slice(0, 40) + "…" } },
-  null,
-  2,
-)}
-                      </pre>
-                      {lastEvent.evidence_clip?.url && (
-                        <div className="space-y-1">
-                          <div className="text-[9px] font-mono text-[#8C8C85] uppercase">Evidence Clip (Media Buffer)</div>
-                          <video
-                            src={lastEvent.evidence_clip.url}
-                            controls
-                            className="w-full max-w-md rounded-none border border-[#2C2C2A] bg-black"
-                          />
-                        </div>
-                      )}
-                    </div>
+                    <CurrentActivityCard
+                      lastEvent={lastEvent}
+                      decision={decision}
+                      result={result}
+                      orchestrationMode={orchestrationMode}
+                    />
                   ) : (
-                    <Empty>No camera events captured yet. Trigger one of the classes on the Vision Agent below.</Empty>
+                    <Empty>Nothing's happened yet. Trigger an event in front of the camera, or import a video file to inspect.</Empty>
                   )}
-                </Panel>
-
-                {/* Orchestration Decision */}
-                <Panel title="Orchestration Decision" badge={orchestrationMode ? `via ${orchestrationMode}` : "—"}>
-                  {decision ? (
-                    <pre className="bg-[#0A0A0A] border border-[#2C2C2A] p-3 text-[10px] font-mono text-[#C1C1B8] overflow-x-auto selection:bg-emerald-500/20">
-                      {JSON.stringify(decision, null, 2)}
-                    </pre>
-                  ) : (
-                    <Empty>Awaiting target class event detection...</Empty>
-                  )}
-                </Panel>
-
-                {/* Browser Agent Result */}
-                <Panel title="Browser Agent Result" badge={result ? (result.success ? "success" : "failed") : "—"}>
-                  {result ? (
-                    <div className="space-y-3">
-                      <pre className="bg-[#0A0A0A] border border-[#2C2C2A] p-3 text-[10px] font-mono text-[#C1C1B8] overflow-x-auto selection:bg-emerald-500/20">
-{JSON.stringify({ ...result, screenshot_data_url: result.screenshot_data_url ? "<base64_encoded_png>" : undefined }, null, 2)}
-                      </pre>
-                      {result.screenshot_data_url && (
-                        <div className="space-y-1">
-                          <div className="text-[9px] font-mono text-[#8C8C85] uppercase">Playwright Browser Screenshot</div>
-                          <img
-                            src={result.screenshot_data_url}
-                            alt="Playwright agent screenshot"
-                            className="w-full max-w-md border border-[#2C2C2A] bg-neutral-900 rounded-none"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <Empty>Awaiting Claude orchestration routing payload...</Empty>
-                  )}
+                  <p className="mt-3 text-[10px] text-neutral-500 font-mono leading-relaxed">
+                    Open the <span className="text-[#D2E7C9]">AGENTS</span> tab to see the full thought process —
+                    what each agent saw, decided, and did.
+                  </p>
                 </Panel>
               </div>
             </div>
 
+            {/* Test event launcher — fire synthetic CameraEvents into the pipeline */}
+            <EventLauncher />
+
             {/* Agentic three-stage pipeline (Orchestrator → Reasoning → Executor → Gmail) */}
             <AgentPipelinePanel loiteringThresholdMs={crimeConfig.dwellMs} />
+          </div>
+        )}
+
+        {/* Tab: AGENTS — dedicated view, one section per agent */}
+        {activeTab === "agents" && (
+          <div className="animate-fadeIn">
+            <AgentsView />
           </div>
         )}
 
@@ -560,63 +604,50 @@ export default function DemoCockpit() {
                 </div>
               </div>
 
-              {/* Active Pricing Model card */}
+              {/* Active model card — derives from real /api/orchestrate responses */}
               <div className="bg-[#171716] border border-[#2C2C2A] p-4 flex flex-col justify-between h-32 rounded-none">
-                <div className="text-[10px] font-mono text-[#8C8C85] uppercase tracking-wider">Price Schedule</div>
-                <div className="text-[#E6E6E0] font-mono text-xs leading-relaxed space-y-0.5">
-                  <div className="flex justify-between"><span className="text-[#8C8C85]">Input rate:</span><span className="text-emerald-400 font-bold">$3.00/MTok</span></div>
-                  <div className="flex justify-between"><span className="text-[#8C8C85]">Output rate:</span><span className="text-emerald-400 font-bold">$15.00/MTok</span></div>
+                <div className="text-[10px] font-mono text-[#8C8C85] uppercase tracking-wider">Routing model</div>
+                <div className="text-[#E6E6E0] font-mono text-xs leading-relaxed">
+                  <div className="text-emerald-400 font-bold">{usage.model}</div>
+                  <div className="text-[#8C8C85] text-[10px] mt-1">
+                    {orchestrationMode === "claude"
+                      ? "ANTHROPIC_API_KEY detected → real Claude calls"
+                      : "no API key → using deterministic mock router"}
+                  </div>
                 </div>
                 <div className="text-[8px] font-mono text-[#8C8C85]/60 uppercase">
-                  Claude 3.5 Sonnet Standard
+                  {orchestrationMode === "claude" ? "Sonnet 4.6 · $3/MTok in · $15/MTok out" : "free · no API calls"}
                 </div>
               </div>
 
             </div>
 
-            {/* Individual API Calls Table */}
+            {/* Recent orchestration activity */}
             <div className="bg-[#171716] border border-[#2C2C2A] p-4 rounded-none">
-              <header className="mb-4 border-b border-[#2C2C2A]/60 pb-2">
-                <h3 className="text-xs font-mono font-bold tracking-wider text-[#8C8C85] uppercase">API Call Log History</h3>
+              <header className="mb-4 border-b border-[#2C2C2A]/60 pb-2 flex items-center justify-between">
+                <h3 className="text-xs font-mono font-bold tracking-wider text-[#8C8C85] uppercase">Recent orchestration calls</h3>
+                <span className="text-[9px] text-neutral-500 font-mono">
+                  Token counts only populate when a real Claude call is made (ANTHROPIC_API_KEY set).
+                </span>
               </header>
 
               <div className="overflow-x-auto">
-                <table className="w-full font-mono text-xs text-left text-[#C1C1B8] border-collapse">
-                  <thead>
-                    <tr className="border-b border-[#2C2C2A] text-[#8C8C85] text-[10px] uppercase">
-                      <th className="py-2.5 px-3">Call ID</th>
-                      <th className="py-2.5 px-3">Timestamp</th>
-                      <th className="py-2.5 px-3">Triggered Workflow</th>
-                      <th className="py-2.5 px-3 text-right">Prompt Tokens</th>
-                      <th className="py-2.5 px-3 text-right">Completion Tokens</th>
-                      <th className="py-2.5 px-3 text-right">Total Tokens</th>
-                      <th className="py-2.5 px-3 text-right">Est. Cost</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {orchestrationCalls.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="py-8 text-center text-[#8C8C85]/50 italic">
-                          No API calls logged in this session yet. Trigger an event in the Workbench.
-                        </td>
-                      </tr>
-                    ) : (
-                      orchestrationCalls.map((call) => (
-                        <tr key={call.id} className="border-b border-[#2C2C2A]/40 hover:bg-[#0A0A0A]/40 transition-colors">
-                          <td className="py-2.5 px-3 font-bold text-emerald-400">#00{call.id}</td>
-                          <td className="py-2.5 px-3 text-[#8C8C85]">
-                            {new Date(call.timestamp).toLocaleTimeString([], { hour12: false })}
-                          </td>
-                          <td className="py-2.5 px-3 font-semibold text-[#E6E6E0]">{call.workflow}</td>
-                          <td className="py-2.5 px-3 text-right">{call.promptTokens.toLocaleString()}</td>
-                          <td className="py-2.5 px-3 text-right">{call.completionTokens.toLocaleString()}</td>
-                          <td className="py-2.5 px-3 text-right font-semibold">{call.totalTokens.toLocaleString()}</td>
-                          <td className="py-2.5 px-3 text-right font-bold text-emerald-400">${call.cost.toFixed(5)}</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                {orchestrationCalls.length === 0 ? (
+                  <p className="py-8 text-center text-[#8C8C85]/60 italic font-mono text-xs">
+                    No orchestration calls in this session yet. Trigger an event in the Workbench.
+                  </p>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {orchestrationCalls.slice().reverse().slice(0, 20).map((call) => (
+                      <li key={call.id} className="flex items-start gap-3 py-1.5 px-2 border-b border-[#2C2C2A]/40">
+                        <span className="text-[10px] text-neutral-500 mt-0.5 shrink-0 font-mono w-20">
+                          {new Date(call.timestamp).toLocaleTimeString([], { hour12: false })}
+                        </span>
+                        <span className="text-xs text-[#E6E6E0] flex-1">{call.message}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
           </div>
@@ -662,6 +693,65 @@ function Panel({ title, badge, children }: { title: string; badge?: string; chil
 
 function Empty({ children }: { children: React.ReactNode }) {
   return <p className="text-xs font-mono text-[#8C8C85]/80 leading-relaxed italic">{children}</p>;
+}
+
+function CurrentActivityCard({
+  lastEvent,
+  decision,
+  result,
+  orchestrationMode,
+}: {
+  lastEvent: CameraEvent;
+  decision: ReturnType<typeof useAgentStore.getState>["decision"];
+  result: ReturnType<typeof useAgentStore.getState>["result"];
+  orchestrationMode: string;
+}) {
+  return (
+    <div className="space-y-3">
+      {/* Step 1 — vision saw */}
+      <div className="flex items-start gap-2.5">
+        <span className="text-xl leading-none mt-0.5">{eventEmoji(lastEvent.event_type)}</span>
+        <div className="min-w-0">
+          <div className="text-sm text-neutral-100 font-medium">{eventTitle(lastEvent.event_type)}</div>
+          <div className="text-[11px] text-neutral-400">{eventDescription(lastEvent)}</div>
+          <div className="text-[10px] text-neutral-500 mt-0.5 font-mono">
+            {new Date(lastEvent.timestamp).toLocaleTimeString()} ·{" "}
+            {confidenceQual(lastEvent.confidence)} confidence ({confidencePercent(lastEvent.confidence)})
+          </div>
+        </div>
+      </div>
+
+      {lastEvent.evidence_clip?.url?.startsWith("blob:") && (
+        <video src={lastEvent.evidence_clip.url} controls className="w-full max-w-md rounded-none border border-[#2C2C2A] bg-black" />
+      )}
+
+      {/* Step 2 — Peep decided */}
+      {decision && (
+        <div className="border-l-2 border-sky-700/60 pl-3 py-1">
+          <div className="text-[10px] uppercase tracking-wide text-neutral-500 font-mono">
+            Peep decided {orchestrationMode === "claude" ? "(via Claude)" : orchestrationMode === "mock" ? "(via rules)" : ""}
+          </div>
+          <div className="text-xs text-neutral-200">{decisionSentence(decision)}</div>
+        </div>
+      )}
+
+      {/* Step 3 — Peep did */}
+      {result && (
+        <div className={`border-l-2 pl-3 py-1 ${result.success ? "border-emerald-700/60" : "border-red-700/60"}`}>
+          <div className="text-[10px] uppercase tracking-wide text-neutral-500 font-mono">Peep did</div>
+          <div className={`text-xs ${result.success ? "text-emerald-300" : "text-red-300"}`}>
+            {result.success ? "✓ " : "✗ "}
+            {resultSentence(result)}
+          </div>
+          {result.receipt_id && result.success && (
+            <div className="text-[10px] text-neutral-400 mt-0.5 font-mono">
+              Reference: <code className="text-neutral-200">{formatReceiptId(result.receipt_id)}</code>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function PipelineGraph({ status }: { status: string }) {

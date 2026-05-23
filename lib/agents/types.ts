@@ -49,6 +49,13 @@ export interface PipelineResult {
   executor?: ExecutorResult;
   /** Useful flag for UI: did we actually send a Gmail? */
   email_sent: boolean;
+  /** Wall-clock per-stage durations in ms; omitted stages were not run. */
+  timings?: {
+    orchestrator_ms: number;
+    reasoning_ms?: number;
+    executor_ms?: number;
+    total_ms: number;
+  };
 }
 
 export interface PipelineRequest {

@@ -32,8 +32,24 @@ describe("MockRouter", () => {
     expect(d.params.reason).toBe("never_arrived");
     expect(d.params.order_id).toBeTruthy();
   });
-  it("routes person_loitering → log_incident", async () => {
+  it("routes person_loitering → security_alert (warning)", async () => {
     const d = await r.decide(event({ event_type: "person_loitering" }));
-    expect(d.workflow).toBe("log_incident");
+    expect(d.workflow).toBe("security_alert");
+    expect(d.params.severity).toBe("warning");
+  });
+  it("routes weapon_detected → security_alert (critical)", async () => {
+    const d = await r.decide(event({ event_type: "weapon_detected" }));
+    expect(d.workflow).toBe("security_alert");
+    expect(d.params.severity).toBe("critical");
+  });
+  it("routes multiple_loitering → security_alert (high)", async () => {
+    const d = await r.decide(event({ event_type: "multiple_loitering" }));
+    expect(d.workflow).toBe("security_alert");
+    expect(d.params.severity).toBe("high");
+  });
+  it("routes after_hours_activity → security_alert (warning)", async () => {
+    const d = await r.decide(event({ event_type: "after_hours_activity" }));
+    expect(d.workflow).toBe("security_alert");
+    expect(d.params.severity).toBe("warning");
   });
 });

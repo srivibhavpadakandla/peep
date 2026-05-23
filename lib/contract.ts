@@ -8,7 +8,10 @@ export type EventType =
   | "package_taken"
   | "package_arrived"
   | "package_not_arrived"
-  | "person_loitering";
+  | "person_loitering"
+  | "multiple_loitering"
+  | "weapon_detected"
+  | "after_hours_activity";
 
 export interface CameraEvent {
   event_type: EventType;

@@ -19,14 +19,19 @@ JSON object — no prose, no markdown fences — matching:
 }
 
 Workflow guide:
-- "amazon_refund_claim": for both "package_taken" (theft) and "package_not_arrived"
-  (the inbox said it should have arrived today but the camera saw nothing). Params:
+- "amazon_refund_claim": for "package_taken" (theft) and "package_not_arrived"
+  (inbox expected today, camera saw nothing). Params:
     order_id (string)
-    reason ("package_stolen" for theft, "never_arrived" for missing delivery)
-    item_description (string — human-readable summary of the event)
-  Only fire this when confidence >= 0.5.
-- "log_incident": for "package_arrived" (delivery confirmed) and other low-stakes
-  observations. params: { kind: "arrival" | "loitering" }.
+    reason ("package_stolen" for theft, "never_arrived" for missing)
+    item_description (string)
+  Only fire when confidence >= 0.5.
+- "security_alert": for any crime signal — "person_loitering", "multiple_loitering",
+  "weapon_detected", "after_hours_activity". Params:
+    event_type (string — pass through the input event_type)
+    severity ("warning" | "high" | "critical" — weapons → critical, multi-loitering → high, others → warning)
+    confidence (number)
+- "log_incident": for "package_arrived" (delivery confirmed) — log only.
+  params: { kind: "arrival" }.
 - "no_action": clearly benign events. params: {}.
 
 Use defaults when unsure: order_id="112-7350199-0123456". item_description should

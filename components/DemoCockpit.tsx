@@ -5,6 +5,7 @@ import { useAgentStore } from "@/lib/store";
 import type { CameraEvent } from "@/lib/contract";
 import VisionAgent from "./VisionAgent";
 import InboxPanel from "./InboxPanel";
+import SecurityAlertsPanel, { type CrimeConfig } from "./SecurityAlertsPanel";
 
 export default function DemoCockpit() {
   const lastEvent = useAgentStore((s) => s.lastEvent);
@@ -20,6 +21,12 @@ export default function DemoCockpit() {
   const lastHandled = useRef<number>(0);
   const [target, setTarget] = useState("backpack");
   const [orchestrationMode, setOrchestrationMode] = useState<string>("");
+  const [crimeConfig, setCrimeConfig] = useState<CrimeConfig>({
+    quietHoursEnabled: true,
+    quietHoursStart: 22,
+    quietHoursEnd: 5,
+    dwellMs: 5000,
+  });
 
   useEffect(() => {
     if (!lastEvent) return;
@@ -77,8 +84,9 @@ export default function DemoCockpit() {
             reset
           </button>
         </div>
-        <VisionAgent key={target} targetLabel={target} />
+        <VisionAgent key={target} targetLabel={target} crimeOptions={crimeConfig} />
         <InboxPanel />
+        <SecurityAlertsPanel config={crimeConfig} onChange={setCrimeConfig} />
       </div>
 
       <div className="space-y-4">

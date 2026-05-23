@@ -4,6 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { useAgentStore } from "@/lib/store";
 import { CocoSsdDetector } from "@/lib/vision/coco-ssd-detector";
 import { EventDetector, DEFAULT_OPTIONS, buildEvent } from "@/lib/vision/event-detector";
+import {
+  CrimeMonitor,
+  DEFAULT_OPTIONS as CRIME_DEFAULTS,
+  type CrimeMonitorOptions,
+} from "@/lib/vision/crime-monitor";
 import { ClipRecorder } from "@/lib/vision/clip-recorder";
 import type { Detector, Detection } from "@/lib/vision/detector";
 import { notifyEvent, requestNotificationPermission } from "@/lib/notify";
@@ -13,11 +18,14 @@ interface Props {
   targetLabel?: string;
   /** Allow consumers to swap in a mock detector for tests. */
   detectorFactory?: () => Detector;
+  /** Crime-monitor overrides (e.g. quiet-hours window). */
+  crimeOptions?: Partial<CrimeMonitorOptions>;
 }
 
-export default function VisionAgent({ targetLabel = "backpack", detectorFactory }: Props) {
+export default function VisionAgent({ targetLabel = "backpack", detectorFactory, crimeOptions }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const crimeMonitorRef = useRef<CrimeMonitor | null>(null);
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [phase, setPhase] = useState<string>("idle");
@@ -35,6 +43,8 @@ export default function VisionAgent({ targetLabel = "backpack", detectorFactory 
     let recorder: ClipRecorder | null = null;
     let detector: Detector | null = null;
     let eventDetector = new EventDetector({ ...DEFAULT_OPTIONS, targetLabel });
+    let crimeMonitor = new CrimeMonitor({ ...CRIME_DEFAULTS, ...crimeOptions });
+    crimeMonitorRef.current = crimeMonitor;
     let rafId = 0;
 
     async function init() {
@@ -73,6 +83,16 @@ export default function VisionAgent({ targetLabel = "backpack", detectorFactory 
             notifyEvent(event);
             publishEvent(event);
           }
+
+          const crimeDecision = crimeMonitor.ingest(detections, now, {
+            personNearTarget: state.personNearTarget,
+          });
+          if (crimeDecision && recorder) {
+            const clip = recorder.finalize();
+            const event = buildEvent(crimeDecision, clip, now);
+            notifyEvent(event);
+            publishEvent(event);
+          }
           rafId = requestAnimationFrame(loop);
         };
         rafId = requestAnimationFrame(loop);
@@ -90,8 +110,18 @@ export default function VisionAgent({ targetLabel = "backpack", detectorFactory 
       recorder?.stop();
       detector?.dispose?.();
       stream?.getTracks().forEach((t) => t.stop());
+      crimeMonitorRef.current = null;
     };
+    // crimeOptions is applied via a separate effect so quiet-hours can change
+    // without resetting the camera / detector / state machines.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetLabel, detectorFactory, publishEvent, appendLog, setStatus]);
+
+  useEffect(() => {
+    if (crimeMonitorRef.current && crimeOptions) {
+      crimeMonitorRef.current.setOptions(crimeOptions);
+    }
+  }, [crimeOptions]);
 
   return (
     <div className="relative w-full max-w-[640px] rounded-lg overflow-hidden border border-neutral-800 bg-neutral-950">

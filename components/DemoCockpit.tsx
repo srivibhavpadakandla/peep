@@ -6,6 +6,7 @@ import type { CameraEvent } from "@/lib/contract";
 import VisionAgent from "./VisionAgent";
 import InboxPanel from "./InboxPanel";
 import SecurityAlertsPanel, { type CrimeConfig, type AnimalConfig } from "./SecurityAlertsPanel";
+import SettingsPanel from "./SettingsPanel";
 import {
   confidencePercent,
   confidenceQual,
@@ -17,13 +18,14 @@ import {
   resultSentence,
 } from "@/lib/labels";
 
-type Tab = "live" | "activity" | "inbox" | "alerts";
+type Tab = "live" | "activity" | "inbox" | "alerts" | "settings";
 
 const TABS: { id: Tab; label: string; icon: string; description: string }[] = [
   { id: "live", label: "Live", icon: "🎥", description: "Camera + current event" },
   { id: "activity", label: "Activity", icon: "🕒", description: "Recent activity log" },
   { id: "inbox", label: "Inbox", icon: "📬", description: "Expected deliveries" },
-  { id: "alerts", label: "Alerts", icon: "🛡", description: "Security alerts + settings" },
+  { id: "alerts", label: "Alerts", icon: "🛡", description: "Security alerts" },
+  { id: "settings", label: "Settings", icon: "⚙", description: "Inbox source + integrations" },
 ];
 
 export default function DemoCockpit() {
@@ -305,6 +307,9 @@ export default function DemoCockpit() {
             animalConfig={animalConfig}
             onAnimalChange={setAnimalConfig}
           />
+        </div>
+        <div className={tab === "settings" ? "" : "hidden"}>
+          <SettingsPanel />
         </div>
       </div>
     </div>

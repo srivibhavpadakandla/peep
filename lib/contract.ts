@@ -4,7 +4,11 @@
  * without coordinating across builders.
  */
 
-export type EventType = "package_taken" | "package_arrived" | "person_loitering";
+export type EventType =
+  | "package_taken"
+  | "package_arrived"
+  | "package_not_arrived"
+  | "person_loitering";
 
 export interface CameraEvent {
   event_type: EventType;

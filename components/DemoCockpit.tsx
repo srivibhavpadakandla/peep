@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAgentStore } from "@/lib/store";
 import type { CameraEvent } from "@/lib/contract";
 import VisionAgent from "./VisionAgent";
+import InboxPanel from "./InboxPanel";
 
 export default function DemoCockpit() {
   const lastEvent = useAgentStore((s) => s.lastEvent);
@@ -77,6 +78,7 @@ export default function DemoCockpit() {
           </button>
         </div>
         <VisionAgent key={target} targetLabel={target} />
+        <InboxPanel />
       </div>
 
       <div className="space-y-4">

@@ -6,6 +6,7 @@ import { CocoSsdDetector } from "@/lib/vision/coco-ssd-detector";
 import { EventDetector, DEFAULT_OPTIONS, buildEvent } from "@/lib/vision/event-detector";
 import { ClipRecorder } from "@/lib/vision/clip-recorder";
 import type { Detector, Detection } from "@/lib/vision/detector";
+import { notifyEvent, requestNotificationPermission } from "@/lib/notify";
 
 interface Props {
   /** COCO-SSD class to treat as "the package". */
@@ -19,7 +20,9 @@ export default function VisionAgent({ targetLabel = "backpack", detectorFactory 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [phase, setPhase] = useState<string>("waiting");
+  const [phase, setPhase] = useState<string>("idle");
+  const [personPresent, setPersonPresent] = useState(false);
+  const [personNearTarget, setPersonNearTarget] = useState(false);
   const [detectedNow, setDetectedNow] = useState<Detection[]>([]);
 
   const publishEvent = useAgentStore((s) => s.publishEvent);
@@ -36,6 +39,7 @@ export default function VisionAgent({ targetLabel = "backpack", detectorFactory 
 
     async function init() {
       try {
+        void requestNotificationPermission();
         stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false });
         if (cancelled) return;
         const video = videoRef.current!;
@@ -59,10 +63,14 @@ export default function VisionAgent({ targetLabel = "backpack", detectorFactory 
           setDetectedNow(detections);
           const now = Date.now();
           const decision = eventDetector.ingest(detections, now);
-          setPhase(eventDetector.getPhase());
+          const state = eventDetector.getState();
+          setPhase(state.phase);
+          setPersonPresent(state.personPresent);
+          setPersonNearTarget(state.personNearTarget);
           if (decision && recorder) {
             const clip = recorder.finalize();
             const event = buildEvent(decision, clip, now);
+            notifyEvent(event);
             publishEvent(event);
           }
           rafId = requestAnimationFrame(loop);
@@ -99,6 +107,17 @@ export default function VisionAgent({ targetLabel = "backpack", detectorFactory 
         <span className="px-2 py-1 rounded bg-black/70 border border-neutral-700">
           phase: <code>{phase}</code>
         </span>
+        <span
+          className={`px-2 py-1 rounded bg-black/70 border ${
+            personNearTarget
+              ? "border-amber-400 text-amber-300"
+              : personPresent
+              ? "border-sky-500 text-sky-300"
+              : "border-neutral-700 text-neutral-500"
+          }`}
+        >
+          person: <code>{personNearTarget ? "near target" : personPresent ? "in frame" : "none"}</code>
+        </span>
       </div>
       {loadError && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/80 p-4 text-center text-sm text-red-400">
@@ -133,10 +152,11 @@ function drawOverlay(
   for (const d of detections) {
     const [x, y, bw, bh] = d.bbox;
     const isTarget = d.label === targetLabel;
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = isTarget ? "#10b981" : "#737373";
+    const isPerson = d.label === "person";
+    ctx.lineWidth = isTarget || isPerson ? 2 : 1;
+    ctx.strokeStyle = isTarget ? "#10b981" : isPerson ? "#38bdf8" : "#525252";
     ctx.strokeRect(x, y, bw, bh);
-    ctx.fillStyle = isTarget ? "#10b981" : "#737373";
+    ctx.fillStyle = isTarget ? "#10b981" : isPerson ? "#38bdf8" : "#737373";
     ctx.font = "14px ui-monospace, monospace";
     ctx.fillText(`${d.label} ${d.score.toFixed(2)}`, x + 4, y + 16);
   }

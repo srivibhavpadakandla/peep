@@ -19,13 +19,15 @@ export interface OrchestrationRouter {
  */
 export class MockRouter implements OrchestrationRouter {
   async decide(event: CameraEvent): Promise<OrchestrationDecision> {
+    const orderId = String((event as unknown as { order_id?: string }).order_id ?? "112-7350199-0123456");
     const map: Record<EventType, OrchestrationDecision> = {
       package_taken: {
         workflow: "amazon_refund_claim",
-        reason: "Package observed taken from frame; default policy files a refund claim.",
+        reason: "Package observed taken from frame by a person; filing a stolen-package refund claim.",
         params: {
-          order_id: "112-7350199-0123456",
-          item_description: "Package shown on camera at " + new Date(event.timestamp).toISOString(),
+          order_id: orderId,
+          reason: "package_stolen",
+          item_description: "Package taken from the doorstep — captured on camera at " + new Date(event.timestamp).toISOString(),
           confidence: event.confidence,
         },
       },
@@ -33,6 +35,17 @@ export class MockRouter implements OrchestrationRouter {
         workflow: "log_incident",
         reason: "Arrival event — log only, no action required.",
         params: { kind: "arrival" },
+      },
+      package_not_arrived: {
+        workflow: "amazon_refund_claim",
+        reason: "Inbox said package was expected today but camera observed no delivery; filing a never-arrived claim.",
+        params: {
+          order_id: orderId,
+          reason: "never_arrived",
+          item_description:
+            "Order showed as expected by " + new Date(event.timestamp).toISOString() + " but no delivery was observed on camera.",
+          confidence: event.confidence,
+        },
       },
       person_loitering: {
         workflow: "log_incident",

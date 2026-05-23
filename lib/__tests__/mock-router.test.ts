@@ -22,6 +22,16 @@ describe("MockRouter", () => {
     const d = await r.decide(event({ event_type: "package_arrived" }));
     expect(d.workflow).toBe("log_incident");
   });
+  it("routes package_taken with reason=package_stolen", async () => {
+    const d = await r.decide(event({ event_type: "package_taken" }));
+    expect(d.params.reason).toBe("package_stolen");
+  });
+  it("routes package_not_arrived → refund claim with reason=never_arrived", async () => {
+    const d = await r.decide(event({ event_type: "package_not_arrived" }));
+    expect(d.workflow).toBe("amazon_refund_claim");
+    expect(d.params.reason).toBe("never_arrived");
+    expect(d.params.order_id).toBeTruthy();
+  });
   it("routes person_loitering → log_incident", async () => {
     const d = await r.decide(event({ event_type: "person_loitering" }));
     expect(d.workflow).toBe("log_incident");

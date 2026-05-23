@@ -31,10 +31,11 @@ export async function runAmazonRefundClaim(
     await page.waitForURL(/\/refund\?/, { timeout: 5000 });
     step("nav:refund", true, page.url());
 
-    await page.selectOption('select[name="reason"]', "package_stolen");
-    await page.fill('textarea[name="description"]', String(req.params.item_description ?? "Package taken on camera"));
+    const reason = normalizeReason(String(req.params.reason ?? "package_stolen"));
+    await page.selectOption('select[name="reason"]', reason);
+    await page.fill('textarea[name="description"]', String(req.params.item_description ?? defaultDescription(reason)));
     await page.check('input[name="evidence_confirmed"]');
-    step("form:fill", true);
+    step("form:fill", true, `reason=${reason}`);
 
     await Promise.all([page.waitForURL(/\/receipt\?/, { timeout: 5000 }), page.click('button[type="submit"]')]);
     landedUrl = page.url();
@@ -75,4 +76,23 @@ export async function runAmazonRefundClaim(
 async function captureScreenshot(page: Page): Promise<string> {
   const buf = await page.screenshot({ type: "png", fullPage: false });
   return `data:image/png;base64,${buf.toString("base64")}`;
+}
+
+const VALID_REASONS = new Set(["package_stolen", "never_arrived", "damaged", "wrong_item"]);
+function normalizeReason(r: string): string {
+  return VALID_REASONS.has(r) ? r : "package_stolen";
+}
+function defaultDescription(reason: string): string {
+  switch (reason) {
+    case "never_arrived":
+      return "Order shows as delivered in tracking but no package was received on camera.";
+    case "package_stolen":
+      return "Package was taken from the doorstep — captured on camera.";
+    case "damaged":
+      return "Package arrived damaged.";
+    case "wrong_item":
+      return "Received the wrong item.";
+    default:
+      return "Refund requested.";
+  }
 }

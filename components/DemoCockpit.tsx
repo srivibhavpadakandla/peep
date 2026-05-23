@@ -6,6 +6,16 @@ import type { CameraEvent } from "@/lib/contract";
 import VisionAgent from "./VisionAgent";
 import InboxPanel from "./InboxPanel";
 import SecurityAlertsPanel, { type CrimeConfig, type AnimalConfig } from "./SecurityAlertsPanel";
+import {
+  confidencePercent,
+  confidenceQual,
+  decisionSentence,
+  eventDescription,
+  eventEmoji,
+  eventTitle,
+  formatReceiptId,
+  resultSentence,
+} from "@/lib/labels";
 
 export default function DemoCockpit() {
   const lastEvent = useAgentStore((s) => s.lastEvent);
@@ -117,65 +127,113 @@ export default function DemoCockpit() {
       </div>
 
       <div className="space-y-4">
-        <Panel title="Pipeline" badge={status}>
+        <Panel title="Live status" badge={statusLabel(status)}>
           <PipelineGraph status={status} />
         </Panel>
 
-        <Panel title="Last vision event" badge={lastEvent ? lastEvent.event_type : "—"}>
+        <Panel
+          title="What just happened"
+          badge={lastEvent ? `${confidencePercent(lastEvent.confidence)} sure` : "—"}
+        >
           {lastEvent ? (
-            <pre className="text-xs whitespace-pre-wrap break-all">
+            <div className="space-y-2">
+              <div className="flex items-start gap-2">
+                <span className="text-2xl leading-none">{eventEmoji(lastEvent.event_type)}</span>
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-neutral-100">{eventTitle(lastEvent.event_type)}</div>
+                  <div className="text-xs text-neutral-400">{eventDescription(lastEvent)}</div>
+                  <div className="text-[10px] text-neutral-500 mt-0.5">
+                    Detected at {new Date(lastEvent.timestamp).toLocaleTimeString()} ·{" "}
+                    {confidenceQual(lastEvent.confidence)} confidence ({confidencePercent(lastEvent.confidence)})
+                  </div>
+                </div>
+              </div>
+              <video
+                src={lastEvent.evidence_clip.url}
+                controls
+                className="w-full max-w-sm rounded border border-neutral-800"
+              />
+              <details className="text-[10px] text-neutral-500">
+                <summary className="cursor-pointer">Show technical details</summary>
+                <pre className="mt-1 whitespace-pre-wrap break-all">
 {JSON.stringify(
   { ...lastEvent, evidence_clip: { ...lastEvent.evidence_clip, url: lastEvent.evidence_clip.url.slice(0, 40) + "…" } },
   null,
   2,
 )}
-            </pre>
+                </pre>
+              </details>
+            </div>
           ) : (
-            <Empty>No events yet. Hold a {target} in frame for ~1s, then remove it.</Empty>
-          )}
-          {lastEvent && (
-            <video
-              src={lastEvent.evidence_clip.url}
-              controls
-              className="mt-2 w-full max-w-sm rounded border border-neutral-800"
-            />
+            <Empty>Nothing's happened yet. Walk in front of the camera or hold a {target} in frame.</Empty>
           )}
         </Panel>
 
-        <Panel title="Orchestration decision" badge={orchestrationMode ? `via ${orchestrationMode}` : "—"}>
+        <Panel
+          title="What Peep decided to do"
+          badge={orchestrationMode === "claude" ? "Decided by Claude" : orchestrationMode === "mock" ? "Decided by rules" : "—"}
+        >
           {decision ? (
-            <pre className="text-xs whitespace-pre-wrap break-all">{JSON.stringify(decision, null, 2)}</pre>
+            <div className="space-y-2">
+              <div className="text-sm text-neutral-100">{decisionSentence(decision)}</div>
+              {decision.reason && (
+                <div className="text-xs text-neutral-400 italic">"{decision.reason}"</div>
+              )}
+              <details className="text-[10px] text-neutral-500">
+                <summary className="cursor-pointer">Show technical details</summary>
+                <pre className="mt-1 whitespace-pre-wrap break-all">{JSON.stringify(decision, null, 2)}</pre>
+              </details>
+            </div>
           ) : (
-            <Empty>Waiting for an event…</Empty>
+            <Empty>Waiting for the next event…</Empty>
           )}
         </Panel>
 
-        <Panel title="Browser agent result" badge={result ? (result.success ? "success" : "failed") : "—"}>
+        <Panel
+          title="What Peep did about it"
+          badge={result ? (result.success ? "Done" : "Failed") : "—"}
+        >
           {result ? (
             <div className="space-y-2">
-              <pre className="text-xs whitespace-pre-wrap break-all">
-{JSON.stringify({ ...result, screenshot_data_url: result.screenshot_data_url ? "<truncated>" : undefined }, null, 2)}
-              </pre>
+              <div className={`text-sm ${result.success ? "text-emerald-300" : "text-red-300"}`}>
+                {result.success ? "✓ " : "✗ "}
+                {resultSentence(result)}
+              </div>
+              {result.receipt_id && result.success && (
+                <div className="text-[11px] text-neutral-400">
+                  Reference: <code className="text-neutral-200">{formatReceiptId(result.receipt_id)}</code>
+                </div>
+              )}
               {result.screenshot_data_url && (
                 <img
                   src={result.screenshot_data_url}
-                  alt="agent screenshot"
-                  className="mt-2 w-full max-w-sm rounded border border-neutral-800"
+                  alt="screenshot of what Peep did"
+                  className="w-full max-w-sm rounded border border-neutral-800"
                 />
               )}
+              <details className="text-[10px] text-neutral-500">
+                <summary className="cursor-pointer">Show technical details</summary>
+                <pre className="mt-1 whitespace-pre-wrap break-all">
+{JSON.stringify({ ...result, screenshot_data_url: result.screenshot_data_url ? "<truncated>" : undefined }, null, 2)}
+                </pre>
+              </details>
             </div>
           ) : (
-            <Empty>Waiting for an orchestration decision…</Empty>
+            <Empty>Waiting for Peep to decide what to do…</Empty>
           )}
         </Panel>
 
-        <Panel title="Activity log">
-          <div className="text-[11px] font-mono space-y-0.5 max-h-48 overflow-y-auto">
+        <Panel title="Recent activity">
+          <div className="text-xs space-y-1 max-h-56 overflow-y-auto">
             {log.length === 0 && <Empty>Nothing yet.</Empty>}
             {log.map((l, i) => (
-              <div key={i} className={l.level === "error" ? "text-red-400" : "text-neutral-300"}>
-                <span className="text-neutral-500">{new Date(l.ts).toLocaleTimeString()}</span>{" "}
-                <span className="text-neutral-500">[{l.source}]</span> {l.message}
+              <div key={i} className="flex items-start gap-2">
+                <span className="text-[10px] text-neutral-500 mt-0.5 shrink-0">
+                  {new Date(l.ts).toLocaleTimeString()}
+                </span>
+                <span className={l.level === "error" ? "text-red-400" : "text-neutral-200"}>
+                  {l.message}
+                </span>
               </div>
             ))}
           </div>
@@ -201,13 +259,26 @@ function Empty({ children }: { children: React.ReactNode }) {
   return <p className="text-xs text-neutral-500">{children}</p>;
 }
 
+function statusLabel(s: string): string {
+  switch (s) {
+    case "idle": return "Idle";
+    case "watching": return "Watching";
+    case "event_detected": return "Something happened";
+    case "orchestrating": return "Thinking";
+    case "acting": return "Acting";
+    case "done": return "Done";
+    case "error": return "Error";
+    default: return s;
+  }
+}
+
 function PipelineGraph({ status }: { status: string }) {
   const steps = [
-    { id: "watching", label: "Vision" },
-    { id: "event_detected", label: "Event" },
-    { id: "orchestrating", label: "Claude" },
-    { id: "acting", label: "Browser" },
-    { id: "done", label: "Receipt" },
+    { id: "watching", label: "Watching" },
+    { id: "event_detected", label: "Spotted" },
+    { id: "orchestrating", label: "Thinking" },
+    { id: "acting", label: "Acting" },
+    { id: "done", label: "Done" },
   ];
   const order = ["watching", "event_detected", "orchestrating", "acting", "done"];
   const activeIdx = order.indexOf(status);

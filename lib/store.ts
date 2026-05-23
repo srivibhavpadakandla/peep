@@ -4,6 +4,7 @@ import { create } from "zustand";
 import type { CameraEvent } from "./contract";
 import type { OrchestrationDecision } from "./orchestration/router";
 import type { BrowserAgentResult } from "./browser-agent/types";
+import { confidencePercent, decisionSentence, eventEmoji, eventTitle, resultSentence } from "./labels";
 
 export type Status = "idle" | "watching" | "event_detected" | "orchestrating" | "acting" | "done" | "error";
 
@@ -44,13 +45,24 @@ export const useAgentStore = create<AgentState>((set) => ({
     set((s) => ({
       lastEvent: event,
       status: "event_detected",
-      log: [...s.log, { ts: Date.now(), source: "vision", level: "info", message: `event=${event.event_type} conf=${event.confidence.toFixed(2)}` }],
+      log: [
+        ...s.log,
+        {
+          ts: Date.now(),
+          source: "vision",
+          level: "info",
+          message: `${eventEmoji(event.event_type)} ${eventTitle(event.event_type)} (${confidencePercent(event.confidence)} confidence)`,
+        },
+      ],
     })),
   setDecision: (decision) =>
     set((s) => ({
       decision,
       status: "acting",
-      log: [...s.log, { ts: Date.now(), source: "orchestration", level: "info", message: `workflow=${decision.workflow} reason=${decision.reason}` }],
+      log: [
+        ...s.log,
+        { ts: Date.now(), source: "orchestration", level: "info", message: decisionSentence(decision) },
+      ],
     })),
   setResult: (result) =>
     set((s) => ({
@@ -63,7 +75,7 @@ export const useAgentStore = create<AgentState>((set) => ({
           ts: Date.now(),
           source: "browser",
           level: result.success ? "info" : "error",
-          message: result.success ? `receipt=${result.receipt_id}` : `failed: ${result.error}`,
+          message: resultSentence(result),
         },
       ],
     })),

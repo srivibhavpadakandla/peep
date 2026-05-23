@@ -92,8 +92,13 @@ const CameraSwitcher = ({ collapsed }: { collapsed: boolean }) => {
  */
 const SidebarHeartbeat = () => {
   const hb = useAgentStore((s) => s.reasoningHeartbeat);
-  const [now, setNow] = useState(() => Date.now());
+  // mounted gate: the SSR pass renders a stable placeholder so server and
+  // client agree on initial DOM. After mount, we switch to live time.
+  const [mounted, setMounted] = useState(false);
+  const [now, setNow] = useState(0);
   useEffect(() => {
+    setMounted(true);
+    setNow(Date.now());
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
@@ -110,7 +115,9 @@ const SidebarHeartbeat = () => {
           <StatusDot color="#f59e0b" pulse />
           <span className="text-[12px] text-ink-100 font-medium">Reasoning agent</span>
         </div>
-        <Mono className="text-[10.5px] text-ink-400">next {countdown}</Mono>
+        <Mono className="text-[10.5px] text-ink-400">
+          next {mounted ? countdown : "—"}
+        </Mono>
       </div>
       <div className="mt-2 h-1 rounded bg-ink-950 overflow-hidden">
         <div className="h-full bg-amber-500/70 transition-[width] duration-700" style={{ width: `${pct}%` }} />
